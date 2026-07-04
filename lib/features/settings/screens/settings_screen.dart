@@ -3,100 +3,170 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../providers/settings_providers.dart';
-import 'manage_categories_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeModeProvider);
-    final backup = ref.watch(backupProvider);
+    final mode     = ref.watch(themeModeProvider);
+    final nickname = ref.watch(nicknameProvider);
+    final backup   = ref.watch(backupProvider);
+    final isDark   = Theme.of(context).brightness == Brightness.dark;
+    final ink      = isDark ? AppColors.dkInk : AppColors.ink;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        children: [
-          // Appearance
-          _SectionHeader('Appearance'),
-          RadioListTile<ThemeMode>(
-            title: const Text('System'),
-            value: ThemeMode.system,
-            groupValue: themeMode,
-            onChanged: (v) =>
-                ref.read(themeModeProvider.notifier).setMode(v!),
-          ),
-          RadioListTile<ThemeMode>(
-            title: const Text('Light'),
-            value: ThemeMode.light,
-            groupValue: themeMode,
-            onChanged: (v) =>
-                ref.read(themeModeProvider.notifier).setMode(v!),
-          ),
-          RadioListTile<ThemeMode>(
-            title: const Text('Dark'),
-            value: ThemeMode.dark,
-            groupValue: themeMode,
-            onChanged: (v) =>
-                ref.read(themeModeProvider.notifier).setMode(v!),
-          ),
-          const Divider(),
-
-          // Library
-          _SectionHeader('Library'),
-          ListTile(
-            leading: const Icon(Icons.label_outline_rounded),
-            title: const Text('Manage categories'),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const ManageCategoriesScreen()),
-            ),
-          ),
-          const Divider(),
-
-          // Backup
-          _SectionHeader('Data'),
-          ListTile(
-            leading: const Icon(Icons.upload_outlined),
-            title: const Text('Export backup'),
-            subtitle: const Text('Share a JSON + zip of your library'),
-            trailing: backup.phase == BackupPhase.working
-                ? const SizedBox(
-                    width: 20, height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-                : null,
-            onTap: backup.phase == BackupPhase.working
-                ? null
-                : () => ref.read(backupProvider.notifier).export(),
-          ),
-          ListTile(
-            leading: const Icon(Icons.download_outlined),
-            title: const Text('Import backup'),
-            subtitle: const Text('Restore or merge from a previous export'),
-            onTap: backup.phase == BackupPhase.working
-                ? null
-                : () => _showImportDialog(context, ref),
-          ),
-          if (backup.phase == BackupPhase.error)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Text(
-                backup.errorMessage ?? 'Unknown error',
-                style: const TextStyle(
-                    color: AppColors.error, fontSize: 12),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.only(bottom: 40),
+          children: [
+            // ── Profile header ─────────────────────────────────────
+            GestureDetector(
+              onTap: () => _editNickname(context, ref, nickname),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Hi, $nickname.',
+                          style: Theme.of(context)
+                              .textTheme
+                              .displaySmall
+                              ?.copyWith(color: ink),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(Icons.edit_outlined,
+                            size: 18, color: AppColors.muted),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'YOUR SHELF. YOUR SYSTEM.',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            letterSpacing: 2,
+                            color: AppColors.muted,
+                          ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          const Divider(),
 
-          // About
-          _SectionHeader('About'),
-          ListTile(
-            leading: const Icon(Icons.info_outline_rounded),
-            title: const Text('Book Tracker'),
-            subtitle: const Text('Version 1.0.0'),
+            Divider(color: isDark ? AppColors.dkDivide : AppColors.divide,
+                height: 1),
+
+            // ── System ────────────────────────────────────────────
+            _Section('SYSTEM', context),
+            _SubLabel('Appearance', context),
+            ...[ThemeMode.system, ThemeMode.light, ThemeMode.dark].map((m) {
+              final label = switch (m) {
+                ThemeMode.system => 'System Default',
+                ThemeMode.light  => 'Light Mode',
+                ThemeMode.dark   => 'Dark Mode',
+              };
+              return RadioListTile<ThemeMode>(
+                dense: true,
+                title: Text(label,
+                    style: Theme.of(context).textTheme.bodyMedium),
+                value: m,
+                groupValue: mode,
+                activeColor: ink,
+                onChanged: (v) =>
+                    ref.read(themeModeProvider.notifier).setMode(v!),
+              );
+            }),
+
+            Divider(color: isDark ? AppColors.dkDivide : AppColors.divide,
+                height: 1),
+
+            // ── Data ──────────────────────────────────────────────
+            _Section('DATA', context),
+            ListTile(
+              dense: true,
+              leading: Icon(Icons.upload_outlined, color: ink),
+              title: Text('Export Data',
+                  style: Theme.of(context).textTheme.bodyMedium),
+              subtitle: Text('Share a JSON + zip of your library',
+                  style: Theme.of(context).textTheme.bodySmall),
+              trailing: backup.phase == BackupPhase.working
+                  ? const SizedBox(width: 20, height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+              onTap: backup.phase == BackupPhase.working ? null
+                  : () => ref.read(backupProvider.notifier).export(),
+            ),
+            ListTile(
+              dense: true,
+              leading: Icon(Icons.download_outlined, color: ink),
+              title: Text('Import Data',
+                  style: Theme.of(context).textTheme.bodyMedium),
+              subtitle: Text('Restore or merge from previous backup',
+                  style: Theme.of(context).textTheme.bodySmall),
+              trailing: Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+              onTap: backup.phase == BackupPhase.working ? null
+                  : () => _showImportDialog(context, ref),
+            ),
+            if (backup.phase == BackupPhase.error)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text(backup.errorMessage ?? 'Unknown error',
+                    style: const TextStyle(color: AppColors.blood, fontSize: 12,
+                        fontFamily: 'Manrope')),
+              ),
+
+            Divider(color: isDark ? AppColors.dkDivide : AppColors.divide,
+                height: 1),
+
+            // ── About ─────────────────────────────────────────────
+            _Section('ABOUT', context),
+            ListTile(
+              dense: true,
+              title: Text('DRAFT.',
+                  style: Theme.of(context).textTheme.titleMedium),
+              subtitle: Text('Version 1.0',
+                  style: Theme.of(context).textTheme.bodySmall),
+            ),
+            ListTile(
+              dense: true,
+              leading: Icon(Icons.privacy_tip_outlined, color: ink),
+              title: Text('Privacy Policy',
+                  style: Theme.of(context).textTheme.bodyMedium),
+              subtitle: Text('Terms, collection details, and your rights.',
+                  style: Theme.of(context).textTheme.bodySmall),
+              trailing: Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+              onTap: () {}, // wire up URL launcher when ready
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _editNickname(BuildContext context, WidgetRef ref, String current) {
+    final ctrl = TextEditingController(text: current == 'Reader' ? '' : current);
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Your name',
+            style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700)),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(hintText: 'Enter your name'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              ref.read(nicknameProvider.notifier).set(ctrl.text);
+              Navigator.pop(context);
+            },
+            child: const Text('Save'),
           ),
         ],
       ),
@@ -107,31 +177,28 @@ class SettingsScreen extends ConsumerWidget {
     showDialog<void>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Import backup'),
+        title: const Text('Import backup',
+            style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700)),
         content: const Text(
-          'Choose how to handle conflicts with existing books:',
-        ),
+            'Merge adds missing books. Replace discards everything local.',
+            style: TextStyle(fontFamily: 'Manrope')),
         actions: [
+          TextButton(onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              ref
-                  .read(backupProvider.notifier)
-                  .importFromFile(replaceAll: false);
+              ref.read(backupProvider.notifier).importFromFile(replaceAll: false);
             },
             child: const Text('Merge'),
           ),
           TextButton(
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(foregroundColor: AppColors.blood),
             onPressed: () {
               Navigator.pop(context);
               _confirmReplace(context, ref);
             },
             child: const Text('Replace all'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
           ),
         ],
       ),
@@ -142,25 +209,21 @@ class SettingsScreen extends ConsumerWidget {
     showDialog<void>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Replace all local data?'),
+        title: const Text('Replace all data?',
+            style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700)),
         content: const Text(
-          'This will delete all your current books and categories, '
-          'then restore from the backup. This cannot be undone.',
-        ),
+            'This deletes everything in your current library and replaces it with the backup. Cannot be undone.',
+            style: TextStyle(fontFamily: 'Manrope')),
         actions: [
+          TextButton(onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(foregroundColor: AppColors.blood),
             onPressed: () {
               Navigator.pop(context);
-              ref
-                  .read(backupProvider.notifier)
-                  .importFromFile(replaceAll: true);
+              ref.read(backupProvider.notifier).importFromFile(replaceAll: true);
             },
-            child: const Text('Replace all'),
+            child: const Text('Replace'),
           ),
         ],
       ),
@@ -168,22 +231,22 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  final String text;
-  const _SectionHeader(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      child: Text(
-        text.toUpperCase(),
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              letterSpacing: 1.1,
-              color: AppColors.accent,
+Widget _Section(String label, BuildContext context) {
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
+    child: Text(label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              letterSpacing: 2,
+              color: AppColors.muted,
               fontWeight: FontWeight.w700,
-            ),
-      ),
-    );
-  }
+            )),
+  );
+}
+
+Widget _SubLabel(String label, BuildContext context) {
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+    child: Text(label,
+        style: Theme.of(context).textTheme.titleSmall),
+  );
 }
