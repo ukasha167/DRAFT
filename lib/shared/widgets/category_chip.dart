@@ -14,7 +14,7 @@ class CategoryChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = AppColors.accent.withOpacity(isDark ? 0.18 : 0.10);
+    final bg = AppColors.ink.withOpacity(isDark ? 0.18 : 0.10);
 
     if (onRemove != null) {
       return Chip(
@@ -26,9 +26,9 @@ class CategoryChip extends StatelessWidget {
           fontFamily: 'Manrope',
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: AppColors.accent,
+          color: AppColors.ink,
         ),
-        deleteIconColor: AppColors.accent,
+        deleteIconColor: AppColors.ink,
         side: BorderSide.none,
         padding: const EdgeInsets.symmetric(horizontal: 4),
         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -48,7 +48,7 @@ class CategoryChip extends StatelessWidget {
           fontFamily: 'Manrope',
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: AppColors.accent,
+          color: AppColors.ink,
         ),
       ),
     );
