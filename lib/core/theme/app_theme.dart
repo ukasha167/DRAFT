@@ -1,36 +1,34 @@
 import 'package:flutter/material.dart';
 
-/// Design tokens — single source of truth; reference these everywhere.
+// ---------------------------------------------------------------------------
+// Design tokens — single source of truth
+// Neo-brutalist: ink/paper palette, heavy Manrope, flat surfaces.
+// Blood red for favorite hearts only. Everything else is black and white.
+// ---------------------------------------------------------------------------
+
 abstract final class AppColors {
-  // Accent — one color, used everywhere an interactive highlight appears.
-  static const accent = Color(0xFF4F6EF7);
+  // Light mode
+  static const ink     = Color(0xFF0A0A0A);  // near-black: text, icons, borders
+  static const paper   = Color(0xFFFAFAFA);  // near-white: scaffold background
+  static const cream   = Color(0xFFF0EDE8);  // warm off-white: input fill, surfaces
+  static const muted   = Color(0xFF888888);  // secondary text, inactive tabs
+  static const divide  = Color(0xFFDDDDDD);  // dividers
+  static const blood   = Color(0xFFE8261C);  // favorites heart — used nowhere else
 
-  // Neutrals (light)
-  static const backgroundLight = Color(0xFFF8F8FA);
-  static const surfaceLight = Color(0xFFFFFFFF);
-  static const onSurfaceLight = Color(0xFF1A1A2E);
-  static const subtleLight = Color(0xFF8A8FA8);
-
-  // Neutrals (dark)
-  static const backgroundDark = Color(0xFF0F0F1A);
-  static const surfaceDark = Color(0xFF1C1C2E);
-  static const onSurfaceDark = Color(0xFFEEEEF5);
-  static const subtleDark = Color(0xFF6B6F85);
-
-  // Semantic
-  static const error = Color(0xFFE05C5C);
-  static const success = Color(0xFF4CAF82);
-
-  // Wishlist badge
-  static const wishlistBadge = Color(0xFFFFA040);
+  // Dark mode
+  static const dkInk    = Color(0xFFF0EDE8);
+  static const dkPaper  = Color(0xFF0A0A0A);
+  static const dkCream  = Color(0xFF1A1A1A);
+  static const dkMuted  = Color(0xFF5A5A5A);
+  static const dkDivide = Color(0xFF2A2A2A);
 }
 
 abstract final class AppSpacing {
-  static const xs = 4.0;
-  static const s = 8.0;
-  static const m = 16.0;
-  static const l = 24.0;
-  static const xl = 32.0;
+  static const xs  =  4.0;
+  static const s   =  8.0;
+  static const m   = 16.0;
+  static const l   = 24.0;
+  static const xl  = 32.0;
   static const xxl = 48.0;
 }
 
@@ -42,66 +40,66 @@ abstract final class AppTheme {
     useMaterial3: true,
     brightness: Brightness.light,
     fontFamily: 'Manrope',
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: AppColors.accent,
-      brightness: Brightness.light,
-    ).copyWith(
-      primary: AppColors.accent,
-      background: AppColors.backgroundLight,
-      surface: AppColors.surfaceLight,
-      onSurface: AppColors.onSurfaceLight,
-      error: AppColors.error,
+    colorScheme: const ColorScheme.light(
+      primary:    AppColors.ink,
+      onPrimary:  AppColors.paper,
+      secondary:  AppColors.ink,
+      background: AppColors.paper,
+      surface:    AppColors.paper,
+      onSurface:  AppColors.ink,
+      error:      Color(0xFFCC2200),
     ),
-    scaffoldBackgroundColor: AppColors.backgroundLight,
+    scaffoldBackgroundColor: AppColors.paper,
     appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.backgroundLight,
-      foregroundColor: AppColors.onSurfaceLight,
+      backgroundColor: AppColors.paper,
+      foregroundColor: AppColors.ink,
       elevation: 0,
       scrolledUnderElevation: 0,
-      titleTextStyle: TextStyle(
-        fontFamily: 'Manrope',
-        fontSize: 18,
-        fontWeight: FontWeight.w700,
-        color: AppColors.onSurfaceLight,
-      ),
     ),
-    textTheme: _textTheme(AppColors.onSurfaceLight),
+    textTheme: _textTheme(AppColors.ink),
     inputDecorationTheme: _inputDecoration(
-      AppColors.surfaceLight,
-      AppColors.onSurfaceLight,
-      AppColors.subtleLight,
+      fill:   AppColors.cream,
+      text:   AppColors.ink,
+      hint:   AppColors.muted,
+      border: AppColors.ink,
     ),
-    cardTheme: CardThemeData(
-      color: AppColors.surfaceLight,
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
-    dividerColor: Colors.transparent,
-    floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: AppColors.accent,
-      foregroundColor: Colors.white,
-      elevation: 3,
-    ),
-    chipTheme: ChipThemeData(
-      backgroundColor: AppColors.accent.withOpacity(0.10),
-      labelStyle: const TextStyle(
-        fontFamily: 'Manrope',
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        color: AppColors.accent,
+    filledButtonTheme: FilledButtonThemeData(
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(AppColors.ink),
+        foregroundColor: WidgetStateProperty.all(AppColors.paper),
+        textStyle: WidgetStateProperty.all(
+          const TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, fontSize: 14),
+        ),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        ),
+        padding: WidgetStateProperty.all(
+          const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+        ),
       ),
-      side: BorderSide.none,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
     ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: ButtonStyle(
+        foregroundColor: WidgetStateProperty.all(AppColors.ink),
+        side: WidgetStateProperty.all(
+          const BorderSide(color: AppColors.ink, width: 1.5),
+        ),
+        textStyle: WidgetStateProperty.all(
+          const TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        ),
+      ),
+    ),
+    dividerColor: AppColors.divide,
+    cardTheme: const CardThemeData(elevation: 0, color: AppColors.cream),
     snackBarTheme: const SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: AppColors.onSurfaceLight,
+      backgroundColor: AppColors.ink,
       contentTextStyle: TextStyle(
-        fontFamily: 'Manrope',
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-        color: AppColors.surfaceLight,
+        fontFamily: 'Manrope', fontSize: 13,
+        fontWeight: FontWeight.w500, color: AppColors.paper,
       ),
     ),
   );
@@ -113,143 +111,168 @@ abstract final class AppTheme {
     useMaterial3: true,
     brightness: Brightness.dark,
     fontFamily: 'Manrope',
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: AppColors.accent,
-      brightness: Brightness.dark,
-    ).copyWith(
-      primary: AppColors.accent,
-      background: AppColors.backgroundDark,
-      surface: AppColors.surfaceDark,
-      onSurface: AppColors.onSurfaceDark,
-      error: AppColors.error,
+    colorScheme: const ColorScheme.dark(
+      primary:    AppColors.dkInk,
+      onPrimary:  AppColors.dkPaper,
+      secondary:  AppColors.dkInk,
+      background: AppColors.dkPaper,
+      surface:    AppColors.dkPaper,
+      onSurface:  AppColors.dkInk,
+      error:      Color(0xFFFF5533),
     ),
-    scaffoldBackgroundColor: AppColors.backgroundDark,
+    scaffoldBackgroundColor: AppColors.dkPaper,
     appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.backgroundDark,
-      foregroundColor: AppColors.onSurfaceDark,
+      backgroundColor: AppColors.dkPaper,
+      foregroundColor: AppColors.dkInk,
       elevation: 0,
       scrolledUnderElevation: 0,
-      titleTextStyle: TextStyle(
-        fontFamily: 'Manrope',
-        fontSize: 18,
-        fontWeight: FontWeight.w700,
-        color: AppColors.onSurfaceDark,
-      ),
     ),
-    textTheme: _textTheme(AppColors.onSurfaceDark),
+    textTheme: _textTheme(AppColors.dkInk),
     inputDecorationTheme: _inputDecoration(
-      AppColors.surfaceDark,
-      AppColors.onSurfaceDark,
-      AppColors.subtleDark,
+      fill:   AppColors.dkCream,
+      text:   AppColors.dkInk,
+      hint:   AppColors.dkMuted,
+      border: AppColors.dkInk,
     ),
-    cardTheme: CardThemeData(
-      color: AppColors.surfaceDark,
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
-    dividerColor: Colors.transparent,
-    floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: AppColors.accent,
-      foregroundColor: Colors.white,
-      elevation: 3,
-    ),
-    chipTheme: ChipThemeData(
-      backgroundColor: AppColors.accent.withOpacity(0.15),
-      labelStyle: const TextStyle(
-        fontFamily: 'Manrope',
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        color: AppColors.accent,
+    filledButtonTheme: FilledButtonThemeData(
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(AppColors.dkInk),
+        foregroundColor: WidgetStateProperty.all(AppColors.dkPaper),
+        textStyle: WidgetStateProperty.all(
+          const TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, fontSize: 14),
+        ),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        ),
+        padding: WidgetStateProperty.all(
+          const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+        ),
       ),
-      side: BorderSide.none,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
     ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: ButtonStyle(
+        foregroundColor: WidgetStateProperty.all(AppColors.dkInk),
+        side: WidgetStateProperty.all(
+          const BorderSide(color: AppColors.dkInk, width: 1.5),
+        ),
+        textStyle: WidgetStateProperty.all(
+          const TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        ),
+      ),
+    ),
+    dividerColor: AppColors.dkDivide,
+    cardTheme: const CardThemeData(elevation: 0, color: AppColors.dkCream),
     snackBarTheme: const SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: AppColors.dkInk,
       contentTextStyle: TextStyle(
-        fontFamily: 'Manrope',
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-        color: AppColors.onSurfaceDark,
+        fontFamily: 'Manrope', fontSize: 13,
+        fontWeight: FontWeight.w500, color: AppColors.dkPaper,
       ),
     ),
   );
 
+  // ------------------------------------------------------------------
+  // Private helpers
+  // ------------------------------------------------------------------
+
   static TextTheme _textTheme(Color base) {
+    final muted = base.withOpacity(0.5);
     return TextTheme(
+      // Display — "LIBRARY", "WISHLIST", book title in detail
+      displayLarge: TextStyle(
+        fontFamily: 'Manrope', fontSize: 38, fontWeight: FontWeight.w800,
+        color: base, letterSpacing: -0.5, height: 1.1,
+      ),
+      displayMedium: TextStyle(
+        fontFamily: 'Manrope', fontSize: 30, fontWeight: FontWeight.w800,
+        color: base, letterSpacing: -0.3, height: 1.15,
+      ),
+      displaySmall: TextStyle(
+        fontFamily: 'Manrope', fontSize: 24, fontWeight: FontWeight.w800,
+        color: base, letterSpacing: -0.2, height: 1.2,
+      ),
+      // Headlines
       headlineLarge: TextStyle(
-          fontFamily: 'Manrope',
-          fontSize: 28,
-          fontWeight: FontWeight.w800,
-          color: base),
+        fontFamily: 'Manrope', fontSize: 22, fontWeight: FontWeight.w700,
+        color: base,
+      ),
       headlineMedium: TextStyle(
-          fontFamily: 'Manrope',
-          fontSize: 22,
-          fontWeight: FontWeight.w700,
-          color: base),
+        fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w700,
+        color: base,
+      ),
+      headlineSmall: TextStyle(
+        fontFamily: 'Manrope', fontSize: 16, fontWeight: FontWeight.w700,
+        color: base,
+      ),
+      // Titles
       titleLarge: TextStyle(
-          fontFamily: 'Manrope',
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-          color: base),
+        fontFamily: 'Manrope', fontSize: 15, fontWeight: FontWeight.w700,
+        color: base,
+      ),
       titleMedium: TextStyle(
-          fontFamily: 'Manrope',
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: base),
+        fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600,
+        color: base,
+      ),
       titleSmall: TextStyle(
-          fontFamily: 'Manrope',
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: base),
+        fontFamily: 'Manrope', fontSize: 13, fontWeight: FontWeight.w600,
+        color: base,
+      ),
+      // Body
       bodyLarge: TextStyle(
-          fontFamily: 'Manrope',
-          fontSize: 15,
-          fontWeight: FontWeight.w400,
-          color: base),
+        fontFamily: 'Manrope', fontSize: 15, fontWeight: FontWeight.w400,
+        color: base,
+      ),
       bodyMedium: TextStyle(
-          fontFamily: 'Manrope',
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: base),
+        fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w400,
+        color: base,
+      ),
       bodySmall: TextStyle(
-          fontFamily: 'Manrope',
-          fontSize: 12,
-          fontWeight: FontWeight.w400,
-          color: base.withOpacity(0.7)),
+        fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w400,
+        color: muted,
+      ),
+      // Labels
       labelLarge: TextStyle(
-          fontFamily: 'Manrope',
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: base),
+        fontFamily: 'Manrope', fontSize: 13, fontWeight: FontWeight.w600,
+        color: base,
+      ),
+      labelMedium: TextStyle(
+        fontFamily: 'Manrope', fontSize: 11, fontWeight: FontWeight.w600,
+        color: muted,
+      ),
+      labelSmall: TextStyle(
+        fontFamily: 'Manrope', fontSize: 10, fontWeight: FontWeight.w500,
+        color: muted, letterSpacing: 0.5,
+      ),
     );
   }
 
-  static InputDecorationTheme _inputDecoration(
-      Color fill, Color onFill, Color hint) {
+  static InputDecorationTheme _inputDecoration({
+    required Color fill,
+    required Color text,
+    required Color hint,
+    required Color border,
+  }) {
+    final enabledBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: border.withOpacity(0.15), width: 1),
+    );
     return InputDecorationTheme(
       filled: true,
       fillColor: fill,
       hintStyle: TextStyle(
-          fontFamily: 'Manrope',
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          color: hint),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
+        fontFamily: 'Manrope', fontSize: 14,
+        fontWeight: FontWeight.w400, color: hint,
       ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      border: enabledBorder,
+      enabledBorder: enabledBorder,
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
+        borderRadius: BorderRadius.circular(8),
+        borderSide: BorderSide(color: border, width: 1.5),
       ),
     );
   }
