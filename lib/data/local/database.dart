@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import '../../domain/models/category.dart';
 import 'daos/books_dao.dart';
 import 'daos/categories_dao.dart';
 
@@ -198,8 +199,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> _seedSystemData() async {
-    // Seeded once. Fixed id 'uncategorized' so application code can reference
-    // it directly without querying by name every time.
+    // Uncategorized stays as the DB-level fallback (never shown in UI).
     await into(categories).insertOnConflictUpdate(
       const CategoriesCompanion(
         id: Value('uncategorized'),
@@ -208,6 +208,19 @@ class AppDatabase extends _$AppDatabase {
         isSystem: Value(1),
       ),
     );
+
+    // Hardcoded taxonomy — seed all 20 predefined categories.
+    // Uses insertOnConflictUpdate so re-running on an existing DB is safe.
+    for (final cat in kCategories) {
+      await into(categories).insertOnConflictUpdate(
+        CategoriesCompanion(
+          id: Value(cat.id),
+          name: Value(cat.name),
+          nameNormalized: Value(cat.nameNormalized),
+          isSystem: const Value(1),
+        ),
+      );
+    }
   }
 }
 
