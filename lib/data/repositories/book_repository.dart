@@ -1,5 +1,4 @@
 import '../../domain/models/book.dart';
-import '../../domain/models/category.dart';
 import '../../core/utils/omnibox_parser.dart';
 
 /// Abstract repository interface — the seam where a cloud-backed implementation
