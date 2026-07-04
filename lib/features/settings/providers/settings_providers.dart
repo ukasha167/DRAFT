@@ -16,17 +16,14 @@ import '../../../data/providers/repository_providers.dart';
 // ---------------------------------------------------------------------------
 
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {
-  ThemeModeNotifier() : super(ThemeMode.system) {
-    _load();
-  }
+  ThemeModeNotifier() : super(ThemeMode.system) { _load(); }
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
-    final stored = prefs.getString('theme_mode');
-    state = switch (stored) {
-      'light' => ThemeMode.light,
-      'dark' => ThemeMode.dark,
-      _ => ThemeMode.system,
+    state = switch (prefs.getString('theme_mode')) {
+      'light'  => ThemeMode.light,
+      'dark'   => ThemeMode.dark,
+      _        => ThemeMode.system,
     };
   }
 
@@ -34,8 +31,8 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
     state = mode;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('theme_mode', switch (mode) {
-      ThemeMode.light => 'light',
-      ThemeMode.dark => 'dark',
+      ThemeMode.light  => 'light',
+      ThemeMode.dark   => 'dark',
       ThemeMode.system => 'system',
     });
   }
@@ -43,11 +40,33 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
 
 final themeModeProvider =
     StateNotifierProvider<ThemeModeNotifier, ThemeMode>(
-  (_) => ThemeModeNotifier(),
-);
+        (_) => ThemeModeNotifier());
 
 // ---------------------------------------------------------------------------
-// Backup / Restore
+// Nickname — local only. No auth, no backend.
+// ---------------------------------------------------------------------------
+
+class NicknameNotifier extends StateNotifier<String> {
+  NicknameNotifier() : super('Reader') { _load(); }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getString('nickname') ?? 'Reader';
+  }
+
+  Future<void> set(String name) async {
+    state = name.trim().isEmpty ? 'Reader' : name.trim();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('nickname', state);
+  }
+}
+
+final nicknameProvider =
+    StateNotifierProvider<NicknameNotifier, String>(
+        (_) => NicknameNotifier());
+
+// ---------------------------------------------------------------------------
+// Backup
 // ---------------------------------------------------------------------------
 
 enum BackupPhase { idle, working, done, error }
@@ -67,31 +86,23 @@ class BackupNotifier extends StateNotifier<BackupState> {
   Future<void> export() async {
     state = const BackupState(phase: BackupPhase.working);
     try {
-      final repo = _ref.read(bookRepositoryProvider);
-      final data = await repo.exportToJson();
-      final jsonBytes = utf8.encode(jsonEncode(data));
-
+      final repo  = _ref.read(bookRepositoryProvider);
+      final data  = await repo.exportToJson();
+      final bytes = utf8.encode(jsonEncode(data));
       final archive = Archive()
-        ..addFile(ArchiveFile('books.json', jsonBytes.length, jsonBytes));
-
-      final zipBytes = ZipEncoder().encode(archive);
-      if (zipBytes == null) throw Exception('Failed to encode archive');
-
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/book_tracker_backup.zip');
-      await file.writeAsBytes(zipBytes);
-
+        ..addFile(ArchiveFile('books.json', bytes.length, bytes));
+      final zip = ZipEncoder().encode(archive);
+      if (zip == null) throw Exception('Encoding failed');
+      final dir  = await getTemporaryDirectory();
+      final file = File('${dir.path}/draft_backup.zip');
+      await file.writeAsBytes(zip);
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/zip')],
-        subject: 'Book Tracker Backup',
+        subject: 'DRAFT. Backup',
       );
-
       state = const BackupState(phase: BackupPhase.done);
     } catch (e) {
-      state = BackupState(
-        phase: BackupPhase.error,
-        errorMessage: e.toString(),
-      );
+      state = BackupState(phase: BackupPhase.error, errorMessage: e.toString());
     }
   }
 
@@ -99,32 +110,21 @@ class BackupNotifier extends StateNotifier<BackupState> {
     state = const BackupState(phase: BackupPhase.working);
     try {
       final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['zip'],
-      );
-      if (result == null || result.files.single.path == null) {
-        state = const BackupState(phase: BackupPhase.idle);
-        return;
+          type: FileType.custom, allowedExtensions: ['zip']);
+      if (result?.files.single.path == null) {
+        state = const BackupState(); return;
       }
-
-      final bytes = await File(result.files.single.path!).readAsBytes();
+      final bytes   = await File(result!.files.single.path!).readAsBytes();
       final archive = ZipDecoder().decodeBytes(bytes);
-
       final jsonFile = archive.findFile('books.json');
-      if (jsonFile == null) throw Exception('Invalid backup: missing books.json');
-
-      final content = utf8.decode(jsonFile.content as List<int>);
-      final data = jsonDecode(content) as Map<String, dynamic>;
-
-      final repo = _ref.read(bookRepositoryProvider);
-      await repo.importFromJson(data, replaceAll: replaceAll);
-
+      if (jsonFile == null) throw Exception('Invalid backup: no books.json');
+      final data = jsonDecode(utf8.decode(jsonFile.content as List<int>))
+          as Map<String, dynamic>;
+      await _ref.read(bookRepositoryProvider)
+          .importFromJson(data, replaceAll: replaceAll);
       state = const BackupState(phase: BackupPhase.done);
     } catch (e) {
-      state = BackupState(
-        phase: BackupPhase.error,
-        errorMessage: e.toString(),
-      );
+      state = BackupState(phase: BackupPhase.error, errorMessage: e.toString());
     }
   }
 
@@ -133,5 +133,4 @@ class BackupNotifier extends StateNotifier<BackupState> {
 
 final backupProvider =
     StateNotifierProvider.autoDispose<BackupNotifier, BackupState>(
-  (ref) => BackupNotifier(ref),
-);
+        (ref) => BackupNotifier(ref));
