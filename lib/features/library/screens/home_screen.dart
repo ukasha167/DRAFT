@@ -1,37 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/debouncer.dart';
-import '../../../core/utils/omnibox_parser.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../domain/models/book.dart';
+import '../../../domain/models/category.dart';
 import '../../../shared/widgets/empty_state.dart';
-import '../../../shared/widgets/omnibox_field.dart';
 import '../../add_book/screens/add_book_sheet.dart';
 import '../../book_detail/screens/book_detail_screen.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../providers/library_providers.dart';
-// ignore: unused_import — userCategoriesProvider used in Consumer below
-import '../widgets/book_list_item.dart';
+import '../widgets/book_grid_item.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
-
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  final _debouncer = Debouncer(delay: const Duration(milliseconds: 150));
-  final _scrollKey = const PageStorageKey<String>('home_list');
+  final _searchCtrl = TextEditingController();
+  final _debouncer  = Debouncer(delay: const Duration(milliseconds: 150));
 
   @override
   void initState() {
     super.initState();
     // Post-first-frame sweep: purge soft-deleted rows + orphaned cover files.
-    // Runs off the cold-start critical path.
     WidgetsBinding.instance.addPostFrameCallback((_) => _sweep());
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    _debouncer.dispose();
+    super.dispose();
   }
 
   Future<void> _sweep() async {
@@ -41,27 +45,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     await ref.read(bookRepositoryProvider).sweepExpiredDeletes(cutoff);
   }
 
-  @override
-  void dispose() {
-    _debouncer.dispose();
-    super.dispose();
+  void _switchTab(BookStatus to) {
+    ref.read(currentTabProvider.notifier).state = to;
+    ref.read(activeCategoryProvider.notifier).state = null; // reset filter
   }
 
-  void _onOmniboxChanged(String value) {
-    _debouncer.run(() {
-      ref.read(omniboxTextProvider.notifier).state = value;
-    });
+  void _softDelete(Book book) {
+    ref.read(bookRepositoryProvider).softDelete(book.id);
+    ref.read(lastDeletedProvider.notifier).state =
+        (id: book.id, title: book.title);
+
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        content: Text('"${book.title}" deleted'),
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () {
+            final d = ref.read(lastDeletedProvider);
+            if (d != null) {
+              ref.read(bookRepositoryProvider).restore(d.id);
+              ref.read(lastDeletedProvider.notifier).state = null;
+            }
+          },
+        ),
+      ));
   }
 
-  void _switchTab(BookStatus status) {
-    // Clear :command tokens; preserve free-text and #tags.
-    final raw = ref.read(omniboxTextProvider);
-    final stripped = stripViewCommands(raw);
-    ref.read(omniboxTextProvider.notifier).state = stripped;
-    ref.read(currentTabProvider.notifier).state = status;
-  }
-
-  Future<void> _openAddSheet() async {
+  Future<void> _openAdd() async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -71,249 +83,314 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  void _softDelete(Book book) {
-    ref.read(bookRepositoryProvider).softDelete(book.id);
-    ref.read(lastDeletedProvider.notifier).state =
-        (id: book.id, title: book.title);
-
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('"${book.title}" deleted'),
-        duration: const Duration(seconds: 4),
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () {
-            final deleted = ref.read(lastDeletedProvider);
-            if (deleted != null) {
-              ref.read(bookRepositoryProvider).restore(deleted.id);
-              ref.read(lastDeletedProvider.notifier).state = null;
-            }
-          },
-        ),
-      ),
-    );
-  }
-
-  void _handleReorder(int oldIndex, int newIndex, List<Book> books) {
-    if (newIndex > oldIndex) newIndex--;
-    if (oldIndex == newIndex) return;
-
-    final reordered = [...books];
-    final item = reordered.removeAt(oldIndex);
-    reordered.insert(newIndex, item);
-
-    final prevOrder = newIndex > 0 ? reordered[newIndex - 1].sortOrder : null;
-    final nextOrder = newIndex < reordered.length - 1
-        ? reordered[newIndex + 1].sortOrder
-        : null;
-
-    ref.read(bookRepositoryProvider).reorder(item.id, prevOrder, nextOrder);
+  void _openDetail(Book book) {
+    Navigator.push(context,
+        MaterialPageRoute(builder: (_) => BookDetailScreen(bookId: book.id)));
   }
 
   @override
   Widget build(BuildContext context) {
-    final tab = ref.watch(currentTabProvider);
-    final omniboxText = ref.watch(omniboxTextProvider);
-    final query = ref.watch(parsedQueryProvider);
+    final tab       = ref.watch(currentTabProvider);
+    final catId     = ref.watch(activeCategoryProvider);
     final booksAsync = ref.watch(activeBooksProvider);
-    final isWishlist = tab == BookStatus.wishlist ||
-        query.viewCommand == 'wishlist';
+    final isDark    = Theme.of(context).brightness == Brightness.dark;
+    final isWishlist = tab == BookStatus.wishlist;
 
     return Scaffold(
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // App bar row
+            // ── Header ───────────────────────────────────────────────
             Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              padding: const EdgeInsets.fromLTRB(20, 20, 12, 0),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text('Library',
-                      style: Theme.of(context).textTheme.headlineMedium),
+                  Text(
+                    isWishlist ? 'WISHLIST' : 'LIBRARY',
+                    style: Theme.of(context).textTheme.displayMedium,
+                  ),
                   const Spacer(),
+                  // Toggle to the other view
+                  IconButton(
+                    icon: Icon(isWishlist
+                        ? Icons.auto_stories_outlined
+                        : Icons.bookmark_border_rounded),
+                    tooltip: isWishlist ? 'Library' : 'Wishlist',
+                    onPressed: () =>
+                        _switchTab(isWishlist ? BookStatus.owned : BookStatus.wishlist),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.settings_outlined),
                     tooltip: 'Settings',
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const SettingsScreen()),
-                    ),
+                    onPressed: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const SettingsScreen())),
                   ),
                 ],
               ),
             ),
 
-            // Omnibox
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Consumer(builder: (context, ref, _) {
-                final cats =
-                    ref.watch(userCategoriesProvider).valueOrNull ?? [];
-                return OmniboxField(
-                  initialValue: omniboxText,
-                  onChanged: _onOmniboxChanged,
-                  categories: cats,
-                );
-              }),
-            ),
+            const SizedBox(height: 14),
 
-            // Owned / Wishlist toggle
+            // ── Search ───────────────────────────────────────────────
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: SegmentedButton<BookStatus>(
-                segments: const [
-                  ButtonSegment(
-                    value: BookStatus.owned,
-                    label: Text('Owned'),
-                    icon: Icon(Icons.library_books_outlined, size: 18),
-                  ),
-                  ButtonSegment(
-                    value: BookStatus.wishlist,
-                    label: Text('Wishlist'),
-                    icon: Icon(Icons.bookmark_border_rounded, size: 18),
-                  ),
-                ],
-                selected: {tab},
-                onSelectionChanged: (s) => _switchTab(s.first),
-                style: ButtonStyle(
-                  textStyle: WidgetStateProperty.all(
-                    const TextStyle(
-                        fontFamily: 'Manrope', fontWeight: FontWeight.w600),
-                  ),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextField(
+                controller: _searchCtrl,
+                onChanged: (v) => _debouncer.run(
+                    () => ref.read(searchTextProvider.notifier).state = v),
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  hintText: 'Search by title or author…',
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                  suffixIcon: _searchCtrl.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 18),
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            ref.read(searchTextProvider.notifier).state = '';
+                          },
+                        )
+                      : null,
                 ),
               ),
             ),
 
-            // Book list
+            const SizedBox(height: 12),
+
+            // ── Category tabs ─────────────────────────────────────────
+            SizedBox(
+              height: 34,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  _CategoryTab(
+                    label: 'All',
+                    isActive: catId == null,
+                    onTap: () =>
+                        ref.read(activeCategoryProvider.notifier).state = null,
+                    isDark: isDark,
+                  ),
+                  ...kCategories.map((cat) => _CategoryTab(
+                        label: cat.name,
+                        isActive: catId == cat.id,
+                        onTap: () => ref
+                            .read(activeCategoryProvider.notifier)
+                            .state = cat.id,
+                        isDark: isDark,
+                      )),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // ── Book grid ────────────────────────────────────────────
             Expanded(
               child: booksAsync.when(
                 loading: () => const Center(
                     child: CircularProgressIndicator(strokeWidth: 2)),
-                error: (e, _) => Center(child: Text('Error: $e')),
-                data: (books) {
-                  if (books.isEmpty) {
-                    return _buildEmptyState(query, isWishlist);
-                  }
-
-                  if (isWishlist) {
-                    return ReorderableListView.builder(
-                      key: _scrollKey,
-                      buildDefaultDragHandles: false, // handle-only dragging
-                      padding: const EdgeInsets.only(bottom: 96),
-                      onReorder: (o, n) => _handleReorder(o, n, books),
-                      itemCount: books.length,
-                      itemBuilder: (context, index) {
-                        final book = books[index];
-                        return BookListItem(
-                          key: ValueKey(book.id),
-                          book: book,
-                          isWishlist: true,
-                          dragHandle: ReorderableDragStartListener(
-                            index: index,
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Icon(
-                                Icons.drag_handle_rounded,
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? AppColors.subtleDark
-                                    : AppColors.subtleLight,
-                              ),
-                            ),
-                          ),
-                          onTap: () => _openDetail(context, book),
-                          onDelete: () => _softDelete(book),
-                          onEdit: () => _openDetail(context, book),
-                          onMove: () => ref
-                              .read(bookRepositoryProvider)
-                              .moveToOwned(book.id),
-                          onMoveUp: index > 0
-                              ? () => _handleReorder(index, index - 1, books)
-                              : null,
-                          onMoveDown: index < books.length - 1
-                              ? () => _handleReorder(index, index + 2, books)
-                              : null,
-                        );
-                      },
-                    );
-                  }
-
-                  // Owned list — fixed itemExtent for zero per-item layout cost.
-                  return ListView.builder(
-                    key: _scrollKey,
-                    padding: const EdgeInsets.only(bottom: 96),
-                    itemCount: books.length,
-                    itemExtent: kBookListItemHeight,
-                    itemBuilder: (context, index) {
-                      final book = books[index];
-                      return BookListItem(
-                        key: ValueKey(book.id),
-                        book: book,
-                        isWishlist: false,
-                        onTap: () => _openDetail(context, book),
-                        onDelete: () => _softDelete(book),
-                        onEdit: () => _openDetail(context, book),
-                        onFavoriteToggle: () => ref
+                error: (e, _) =>
+                    Center(child: Text('Error: $e')),
+                data: (books) => books.isEmpty
+                    ? _emptyState(catId, isWishlist)
+                    : _Grid(
+                        books: books,
+                        isWishlist: isWishlist,
+                        onTap: _openDetail,
+                        onDelete: _softDelete,
+                        onEdit: _openDetail,
+                        onFavorite: (book) => ref
                             .read(bookRepositoryProvider)
                             .toggleFavorite(book.id, !book.isFavorite),
-                        onMove: () => ref
+                        onMove: (book) => isWishlist
+                            ? ref.read(bookRepositoryProvider).moveToOwned(book.id)
+                            : ref.read(bookRepositoryProvider).moveToWishlist(book.id),
+                        onReorder: (book, prev, next) => ref
                             .read(bookRepositoryProvider)
-                            .moveToWishlist(book.id),
-                      );
-                    },
-                  );
-                },
+                            .reorder(book.id, prev, next),
+                      ),
               ),
             ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _openAddSheet,
+        onPressed: _openAdd,
         tooltip: 'Add book',
+        backgroundColor:
+            isDark ? AppColors.dkInk : AppColors.ink,
+        foregroundColor:
+            isDark ? AppColors.dkPaper : AppColors.paper,
         child: const Icon(Icons.add_rounded),
       ),
     );
   }
 
-  Widget _buildEmptyState(ParsedQuery query, bool isWishlist) {
-    if (query.hasFilters) {
-      return const EmptyState(
+  Widget _emptyState(String? catId, bool isWishlist) {
+    if (catId != null || _searchCtrl.text.isNotEmpty) {
+      return EmptyState(
         icon: Icons.search_off_rounded,
         title: 'No matches',
-        subtitle: 'Try adjusting your search or filters',
+        subtitle: 'Try a different search or category',
+        action: TextButton(
+          onPressed: () {
+            _searchCtrl.clear();
+            ref.read(searchTextProvider.notifier).state = '';
+            ref.read(activeCategoryProvider.notifier).state = null;
+          },
+          child: const Text('Clear filters'),
+        ),
       );
     }
     if (isWishlist) {
       return EmptyState(
         icon: Icons.bookmark_border_rounded,
         title: 'Wishlist is empty',
-        subtitle: 'Add books you want to read someday',
-        action: FilledButton.tonal(
-          onPressed: _openAddSheet,
-          child: const Text('Add a book'),
-        ),
+        subtitle: 'Books you want to read go here',
+        action: FilledButton(onPressed: _openAdd, child: const Text('Add a book')),
       );
     }
     return EmptyState(
       icon: Icons.auto_stories_rounded,
       title: 'Your library is empty',
-      subtitle: 'Add your first book to get started',
-      action: FilledButton(
-        onPressed: _openAddSheet,
-        child: const Text('Add your first book'),
-      ),
+      subtitle: 'Start by adding your first book',
+      action: FilledButton(onPressed: _openAdd, child: const Text('Add your first book')),
     );
   }
+}
 
-  void _openDetail(BuildContext context, Book book) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => BookDetailScreen(bookId: book.id)),
+// ---------------------------------------------------------------------------
+// Grid — LayoutBuilder gives exact column width so covers are pixel-precise.
+// ---------------------------------------------------------------------------
+
+class _Grid extends StatelessWidget {
+  final List<Book> books;
+  final bool isWishlist;
+  final void Function(Book) onTap;
+  final void Function(Book) onDelete;
+  final void Function(Book) onEdit;
+  final void Function(Book) onFavorite;
+  final void Function(Book) onMove;
+  final void Function(Book book, double? prev, double? next) onReorder;
+
+  const _Grid({
+    required this.books,
+    required this.isWishlist,
+    required this.onTap,
+    required this.onDelete,
+    required this.onEdit,
+    required this.onFavorite,
+    required this.onMove,
+    required this.onReorder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(builder: (context, constraints) {
+      const hPad = 16.0, gap = 12.0, cols = 2;
+      final colW     = (constraints.maxWidth - hPad * 2 - gap * (cols - 1)) / cols;
+      final coverH   = colW * 1.5;       // exact 2:3 ratio per column
+      final textH    = 62.0;             // title (2 lines) + author
+      final itemH    = coverH + 8 + textH;
+
+      return GridView.builder(
+        padding: EdgeInsets.fromLTRB(hPad, 16, hPad, 96),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: cols,
+          crossAxisSpacing: gap,
+          mainAxisSpacing: 20,
+          mainAxisExtent: itemH,
+        ),
+        itemCount: books.length,
+        itemBuilder: (_, i) {
+          final book = books[i];
+          return BookGridItem(
+            key: ValueKey(book.id),
+            book: book,
+            isWishlist: isWishlist,
+            onTap: () => onTap(book),
+            onEdit: () => onEdit(book),
+            onDelete: () => onDelete(book),
+            onFavoriteToggle: isWishlist ? null : () => onFavorite(book),
+            onMove: () => onMove(book),
+            // Move up/down: compute neighbor sort orders from the current list.
+            onMoveUp: isWishlist && i > 0
+                ? () => onReorder(
+                      book,
+                      i > 1 ? books[i - 2].sortOrder : null,
+                      books[i - 1].sortOrder,
+                    )
+                : null,
+            onMoveDown: isWishlist && i < books.length - 1
+                ? () => onReorder(
+                      book,
+                      books[i + 1].sortOrder,
+                      i < books.length - 2 ? books[i + 2].sortOrder : null,
+                    )
+                : null,
+          );
+        },
+      );
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Category tab
+// ---------------------------------------------------------------------------
+
+class _CategoryTab extends StatelessWidget {
+  final String label;
+  final bool isActive;
+  final VoidCallback onTap;
+  final bool isDark;
+
+  const _CategoryTab({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = isDark ? AppColors.dkInk : AppColors.ink;
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Manrope',
+                fontSize: 13,
+                fontWeight:
+                    isActive ? FontWeight.w700 : FontWeight.w400,
+                color: isActive ? ink : AppColors.muted,
+              ),
+            ),
+            const SizedBox(height: 3),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              height: 2,
+              width: isActive ? 20 : 0,
+              decoration: BoxDecoration(
+                color: ink,
+                borderRadius: BorderRadius.circular(1),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
