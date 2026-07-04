@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../data/providers/repository_providers.dart';
-import '../../../domain/models/book.dart';
 import '../../../domain/models/category.dart';
 
 /// Shared form for Add (post-search confirm), Manual Entry, and Edit.
@@ -113,7 +111,7 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
           bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
         ),
         children: [
-          _Field('TITLE *'),
+          const _Field('TITLE *'),
           TextFormField(
             controller: _titleCtrl,
             textCapitalization: TextCapitalization.words,
@@ -123,7 +121,7 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
           ),
           const SizedBox(height: 16),
 
-          _Field('AUTHOR'),
+          const _Field('AUTHOR'),
           TextFormField(
             controller: _authorCtrl,
             textCapitalization: TextCapitalization.words,
@@ -131,7 +129,7 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
           ),
           const SizedBox(height: 16),
 
-          _Field('ISBN'),
+          const _Field('ISBN'),
           TextFormField(
             controller: _isbnCtrl,
             keyboardType: TextInputType.number,
@@ -139,7 +137,7 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
           ),
           const SizedBox(height: 16),
 
-          _Field('SUMMARY'),
+          const _Field('SUMMARY'),
           TextFormField(
             controller: _summaryCtrl,
             maxLines: 4,
@@ -151,7 +149,7 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
           // ── Category picker ────────────────────────────────────────
           Row(
             children: [
-              _Field('CATEGORIES'),
+              const _Field('CATEGORIES'),
               const Spacer(),
               Text(
                 '${_selectedIds.length}/$_maxCats',
