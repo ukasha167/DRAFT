@@ -202,7 +202,7 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.search_rounded, size: 48, color: AppColors.accent),
+          const Icon(Icons.search_rounded, size: 48, color: AppColors.ink),
           const SizedBox(height: 12),
           Text('Type 3+ characters to search',
               style: Theme.of(context).textTheme.bodyMedium),
@@ -287,7 +287,6 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
       initialIsbn: prefilled?.isbn,
       initialSummary: prefilled?.description,
       initialCategories: const [],
-      initialStatus: BookStatus.wishlist,
       onSave: ({
         required String title,
         String? author,
