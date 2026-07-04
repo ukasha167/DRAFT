@@ -1,12 +1,8 @@
-/// Pure domain model. The `Uncategorized` system category has id == 'uncategorized'.
+/// Pure domain model.
 class Category {
   final String id;
   final String name;
-
-  /// Lowercased + trimmed — unique key for deduplication and #tag filtering.
   final String nameNormalized;
-
-  /// True only for the seeded 'Uncategorized' category — cannot be deleted or renamed.
   final bool isSystem;
 
   const Category({
@@ -16,24 +12,7 @@ class Category {
     this.isSystem = false,
   });
 
-  static const uncategorized = Category(
-    id: 'uncategorized',
-    name: 'Uncategorized',
-    nameNormalized: 'uncategorized',
-    isSystem: true,
-  );
-
-  /// Normalize a user-provided category name for dedup comparison.
   static String normalize(String name) => name.trim().toLowerCase();
-
-  Category copyWith({String? name, String? nameNormalized}) {
-    return Category(
-      id: id,
-      name: name ?? this.name,
-      nameNormalized: nameNormalized ?? this.nameNormalized,
-      isSystem: isSystem,
-    );
-  }
 
   @override
   bool operator ==(Object other) =>
@@ -43,5 +22,34 @@ class Category {
   int get hashCode => id.hashCode;
 
   @override
-  String toString() => 'Category(id: $id, name: $name)';
+  String toString() => 'Category($id, $name)';
 }
+
+// ---------------------------------------------------------------------------
+// Hardcoded taxonomy — users cannot create, rename, or delete these.
+// Seeded into the DB on first install. `Uncategorized` stays in DB as a
+// fallback for edge cases but is NOT in this list and never shown in the UI.
+// ---------------------------------------------------------------------------
+
+const kCategories = <Category>[
+  Category(id: 'fiction',      name: 'Fiction',       nameNormalized: 'fiction',      isSystem: true),
+  Category(id: 'non-fiction',  name: 'Non-Fiction',   nameNormalized: 'non-fiction',  isSystem: true),
+  Category(id: 'novel',        name: 'Novel',         nameNormalized: 'novel',        isSystem: true),
+  Category(id: 'literature',   name: 'Literature',    nameNormalized: 'literature',   isSystem: true),
+  Category(id: 'tragedy',      name: 'Tragedy',       nameNormalized: 'tragedy',      isSystem: true),
+  Category(id: 'self-help',    name: 'Self-Help',     nameNormalized: 'self-help',    isSystem: true),
+  Category(id: 'drama',        name: 'Drama',         nameNormalized: 'drama',        isSystem: true),
+  Category(id: 'mystery',      name: 'Mystery',       nameNormalized: 'mystery',      isSystem: true),
+  Category(id: 'thriller',     name: 'Thriller',      nameNormalized: 'thriller',     isSystem: true),
+  Category(id: 'romance',      name: 'Romance',       nameNormalized: 'romance',      isSystem: true),
+  Category(id: 'fantasy',      name: 'Fantasy',       nameNormalized: 'fantasy',      isSystem: true),
+  Category(id: 'sci-fi',       name: 'Sci-Fi',        nameNormalized: 'sci-fi',       isSystem: true),
+  Category(id: 'biography',    name: 'Biography',     nameNormalized: 'biography',    isSystem: true),
+  Category(id: 'history',      name: 'History',       nameNormalized: 'history',      isSystem: true),
+  Category(id: 'poetry',       name: 'Poetry',        nameNormalized: 'poetry',       isSystem: true),
+  Category(id: 'horror',       name: 'Horror',        nameNormalized: 'horror',       isSystem: true),
+  Category(id: 'adventure',    name: 'Adventure',     nameNormalized: 'adventure',    isSystem: true),
+  Category(id: 'philosophy',   name: 'Philosophy',    nameNormalized: 'philosophy',   isSystem: true),
+  Category(id: 'classics',     name: 'Classics',      nameNormalized: 'classics',     isSystem: true),
+  Category(id: 'graphic-novel',name: 'Graphic Novel', nameNormalized: 'graphic-novel',isSystem: true),
+];
