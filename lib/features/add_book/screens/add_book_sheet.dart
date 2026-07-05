@@ -91,12 +91,10 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
       minChildSize: 0.5,
       maxChildSize: 0.97,
       builder: (context, scrollController) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
+        return Material(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          clipBehavior: Clip.hardEdge,
           child: Column(
             children: [
               // Handle
@@ -154,9 +152,9 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
   }
 
   String _headerTitle(AddBookState state) => switch (state) {
-        AddBookForm(prefilled: null) => 'Manual entry',
-        AddBookForm() => 'Confirm details',
-        _ => 'Add book',
+        AddBookForm(prefilled: null) => 'MANUAL ENTRY',
+        AddBookForm() => 'CONFIRM DETAILS',
+        _ => 'ADD BOOK',
       };
 
   Widget _buildSearchPhase(AddBookState state) {
@@ -170,8 +168,7 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
             textInputAction: TextInputAction.search,
             onChanged: _onSearchChanged,
             decoration: InputDecoration(
-              hintText: 'Search by title or author…',
-              prefixIcon: const Icon(Icons.search, size: 20),
+              hintText: 'Search by Title',
               suffixIcon: state is AddBookSearching
                   ? const Padding(
                       padding: EdgeInsets.all(12),
@@ -204,12 +201,12 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
         children: [
           const Icon(Icons.search_rounded, size: 48, color: AppColors.ink),
           const SizedBox(height: 12),
-          Text('Type 3+ characters to search',
+          Text('Type 2+ characters to search',
               style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(height: 20),
           TextButton.icon(
             icon: const Icon(Icons.edit_outlined, size: 18),
-            label: const Text('Enter manually'),
+            label: const Text('Enter Manually'),
             onPressed: () =>
                 ref.read(addBookProvider.notifier).goManual(),
           ),
