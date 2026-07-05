@@ -39,39 +39,33 @@ class BookGridItem extends ConsumerWidget {
 
     return GestureDetector(
       onTap: onTap,
-      onLongPress: () {
+      onLongPressStart: (details) {
         HapticFeedback.mediumImpact();
-        _showActionSheet(context);
+        _showContextMenu(context, details.globalPosition);
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Cover ──────────────────────────────────────────────────
+          // ── Cover ──────────────────────────────────────────────
           Expanded(
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(8),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
                   _Cover(book: book),
-                  // Favorite heart badge
                   if (book.isFavorite)
                     Positioned(
-                      top: 8,
-                      right: 8,
+                      top: 8, right: 8,
                       child: Container(
                         padding: const EdgeInsets.all(5),
                         decoration: BoxDecoration(
-                          color: isDark
-                              ? AppColors.dkPaper.withOpacity(0.85)
-                              : AppColors.paper.withOpacity(0.85),
+                          color: (isDark ? AppColors.dkPaper : AppColors.paper)
+                              .withOpacity(0.88),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
-                          Icons.favorite_rounded,
-                          color: AppColors.blood,
-                          size: 12,
-                        ),
+                        child: const Icon(Icons.favorite_rounded,
+                            color: AppColors.blood, size: 12),
                       ),
                     ),
                 ],
@@ -79,105 +73,110 @@ class BookGridItem extends ConsumerWidget {
             ),
           ),
 
-          // ── Title + Author ─────────────────────────────────────────
-          const SizedBox(height: 8),
+          // ── Title + Author ─────────────────────────────────────
+          const SizedBox(height: 9),
           Text(
             book.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleSmall,
+            style: TextStyle(
+              fontFamily: 'Manrope',
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: isDark ? AppColors.dkInk : AppColors.ink,
+              height: 1.25,
+            ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 3),
           Text(
             book.author ?? '',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall,
+            style: const TextStyle(
+              fontFamily: 'Manrope',
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              color: AppColors.muted,
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _showActionSheet(BuildContext context) {
-    showModalBottomSheet<void>(
+  Future<void> _showContextMenu(BuildContext context, Offset position) async {
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+
+    final result = await showMenu<_Action>(
       context: context,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+      position: RelativeRect.fromRect(
+        // 1×1 rect at the finger position — Flutter auto-flips if near edges
+        Rect.fromLTWH(position.dx, position.dy, 1, 1),
+        Offset.zero & overlay.size,
       ),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle
-            Container(
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              width: 36, height: 3,
-              decoration: BoxDecoration(
-                color: AppColors.muted.withOpacity(0.4),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text(
-                book.title,
-                style: Theme.of(context).textTheme.titleMedium,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const Divider(height: 1),
-            _Item(icon: Icons.edit_outlined,       label: 'Edit',
-                onTap: () { Navigator.pop(context); onEdit?.call(); }),
-            if (!isWishlist)
-              _Item(
-                icon: book.isFavorite
-                    ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                label: book.isFavorite ? 'Remove from favourites' : 'Add to favourites',
-                onTap: () {
-                  Navigator.pop(context);
-                  HapticFeedback.lightImpact();
-                  onFavoriteToggle?.call();
-                },
-              ),
-            _Item(
-              icon: isWishlist
-                  ? Icons.library_add_check_outlined
-                  : Icons.bookmark_border_rounded,
-              label: isWishlist ? 'Move to Library' : 'Move to Wishlist',
-              onTap: () { Navigator.pop(context); onMove?.call(); },
-            ),
-            // Accessible reorder — primary mechanism in grid (no drag).
-            if (isWishlist && onMoveUp != null)
-              _Item(icon: Icons.arrow_upward_rounded, label: 'Move up',
-                  onTap: () { Navigator.pop(context); onMoveUp?.call(); }),
-            if (isWishlist && onMoveDown != null)
-              _Item(icon: Icons.arrow_downward_rounded, label: 'Move down',
-                  onTap: () { Navigator.pop(context); onMoveDown?.call(); }),
-            const Divider(height: 1),
-            _Item(
-              icon: Icons.delete_outline_rounded,
-              label: 'Delete',
-              color: AppColors.blood,
-              onTap: () {
-                Navigator.pop(context);
-                HapticFeedback.heavyImpact();
-                onDelete?.call();
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
+      items: [
+        _menuItem(_Action.edit, Icons.edit_outlined, 'Edit'),
+        if (!isWishlist)
+          _menuItem(
+            _Action.favorite,
+            book.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+            book.isFavorite ? 'Remove favourite' : 'Add favourite',
+          ),
+        _menuItem(
+          _Action.move,
+          isWishlist ? Icons.library_add_check_outlined : Icons.bookmark_border_rounded,
+          isWishlist ? 'Move to Library' : 'Move to Wishlist',
         ),
+        if (isWishlist && onMoveUp != null)
+          _menuItem(_Action.up, Icons.arrow_upward_rounded, 'Move up'),
+        if (isWishlist && onMoveDown != null)
+          _menuItem(_Action.down, Icons.arrow_downward_rounded, 'Move down'),
+        const PopupMenuDivider(),
+        _menuItem(_Action.delete, Icons.delete_outline_rounded, 'Delete',
+            isDestructive: true),
+      ],
+    );
+
+    if (result == null) return;
+    switch (result) {
+      case _Action.edit:     onEdit?.call();
+      case _Action.favorite: onFavoriteToggle?.call();
+      case _Action.move:     onMove?.call();
+      case _Action.up:       onMoveUp?.call();
+      case _Action.down:     onMoveDown?.call();
+      case _Action.delete:
+        HapticFeedback.heavyImpact();
+        onDelete?.call();
+    }
+  }
+
+  PopupMenuItem<_Action> _menuItem(
+    _Action action, IconData icon, String label, {bool isDestructive = false}) {
+    final color = isDestructive ? AppColors.blood : null;
+    return PopupMenuItem<_Action>(
+      value: action,
+      child: Row(
+        children: [
+          Icon(icon, size: 17, color: color),
+          const SizedBox(width: 13),
+          Text(label,
+              style: TextStyle(
+                fontFamily: 'Manrope',
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: color,
+              )),
+        ],
       ),
     );
   }
 }
 
+enum _Action { edit, favorite, move, up, down, delete }
+
 // ---------------------------------------------------------------------------
-// Cover renderer — fills its parent via StackFit.expand, BoxFit.cover.
-// Handles relative / legacy-absolute path resolution and shows initials on miss.
+// Cover
 // ---------------------------------------------------------------------------
 
 class _Cover extends ConsumerWidget {
@@ -190,68 +189,33 @@ class _Cover extends ConsumerWidget {
     final stored  = book.coverThumbPath;
 
     if (stored != null) {
-      final resolved =
-          p.isAbsolute(stored) ? stored : p.join(docsDir, stored);
+      final resolved = p.isAbsolute(stored) ? stored : p.join(docsDir, stored);
       if (File(resolved).existsSync()) {
-        return Image.file(
-          File(resolved),
-          fit: BoxFit.cover,
-          width: double.infinity,
-          height: double.infinity,
-          errorBuilder: (_, __, ___) => _Initials(book: book),
-        );
+        return Image.file(File(resolved),
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            errorBuilder: (_, __, ___) => _Placeholder(book: book));
       }
     }
-    return _Initials(book: book);
+    return _Placeholder(book: book);
   }
 }
 
-class _Initials extends StatelessWidget {
+class _Placeholder extends StatelessWidget {
   final Book book;
-  const _Initials({required this.book});
+  const _Placeholder({required this.book});
 
   @override
   Widget build(BuildContext context) {
-    final hue =
-        (book.initials.codeUnits.fold(0, (a, b) => a + b) * 47) % 360;
-    final color =
-        HSLColor.fromAHSL(1, hue.toDouble(), 0.35, 0.40).toColor();
-    final fontSize = 22.0;
-
+    final hue = (book.initials.codeUnits.fold(0, (a, b) => a + b) * 47) % 360;
+    final color = HSLColor.fromAHSL(1, hue.toDouble(), 0.35, 0.40).toColor();
     return Container(
       color: color,
       alignment: Alignment.center,
-      child: Text(
-        book.initials,
-        style: TextStyle(
-          fontFamily: 'Manrope',
-          fontSize: fontSize,
-          fontWeight: FontWeight.w800,
-          color: Colors.white,
-          letterSpacing: 1,
-        ),
-      ),
-    );
-  }
-}
-
-class _Item extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color? color;
-  final VoidCallback onTap;
-  const _Item({required this.icon, required this.label,
-      required this.onTap, this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    final c = color ?? Theme.of(context).colorScheme.onSurface;
-    return ListTile(
-      dense: true,
-      leading: Icon(icon, color: c, size: 20),
-      title: Text(label,
-          style: TextStyle(fontFamily: 'Manrope', color: c, fontSize: 14)),
-      onTap: onTap,
+      child: Text(book.initials,
+          style: const TextStyle(fontFamily: 'Manrope', fontSize: 22,
+              fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 1)),
     );
   }
 }
