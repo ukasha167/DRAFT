@@ -17,8 +17,7 @@ class BookDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(bookDetailProvider(bookId));
-    return async.when(
+    return ref.watch(bookDetailProvider(bookId)).when(
       loading: () => const Scaffold(
           body: Center(child: CircularProgressIndicator(strokeWidth: 2))),
       error: (e, _) => Scaffold(body: Center(child: Text('Error: $e'))),
@@ -29,15 +28,15 @@ class BookDetailScreen extends ConsumerWidget {
           return const Scaffold(
               body: Center(child: CircularProgressIndicator(strokeWidth: 2)));
         }
-        return _DetailView(book: book);
+        return _Detail(book: book);
       },
     );
   }
 }
 
-class _DetailView extends ConsumerWidget {
+class _Detail extends ConsumerWidget {
   final Book book;
-  const _DetailView({required this.book});
+  const _Detail({required this.book});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -53,43 +52,37 @@ class _DetailView extends ConsumerWidget {
           SliverToBoxAdapter(
             child: Stack(
               children: [
-                // Cover: full width, capped height, BoxFit.cover.
-                // Alignment.topCenter ensures title of the cover shows.
                 SizedBox(
                   width: double.infinity,
                   height: 310,
                   child: _FullCover(book: book),
                 ),
-                // Nav row over the cover
+                // Nav controls overlaid on cover
                 SafeArea(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     child: Row(
                       children: [
-                        _NavButton(
+                        _CircleButton(
                           icon: Icons.arrow_back_rounded,
+                          paper: paper, ink: ink,
                           onTap: () => Navigator.pop(context),
-                          paper: paper,
                         ),
                         const Spacer(),
                         // Favourite
-                        _NavButton(
+                        _CircleButton(
                           icon: book.isFavorite
                               ? Icons.favorite_rounded
                               : Icons.favorite_border_rounded,
-                          color: book.isFavorite ? AppColors.blood : null,
+                          iconColor: book.isFavorite ? AppColors.blood : null,
+                          paper: paper, ink: ink,
                           onTap: () {
                             HapticFeedback.lightImpact();
                             repo.toggleFavorite(book.id, !book.isFavorite);
                           },
-                          paper: paper,
                         ),
-                        _NavButton(
-                          icon: Icons.more_vert_rounded,
-                          onTap: () => _showMenu(context, ref),
-                          paper: paper,
-                        ),
+                        // Menu — PopupMenuButton opens near the button, not bottom
+                        _MenuButton(book: book, paper: paper, ink: ink),
                       ],
                     ),
                   ),
@@ -98,48 +91,52 @@ class _DetailView extends ConsumerWidget {
             ),
           ),
 
-          // ── Content ─────────────────────────────────────────────
+          // ── Content ────────────────────────────────────────────
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+              padding: const EdgeInsets.fromLTRB(20, 22, 20, 48),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title — all caps, heavy
                   Text(
                     book.title.toUpperCase(),
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                          color: ink,
-                          letterSpacing: -0.3,
-                        ),
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: ink,
+                      letterSpacing: -0.3,
+                      height: 1.15,
+                    ),
                   ),
-                  const SizedBox(height: 6),
-
-                  // Author
-                  if (book.author != null)
+                  if (book.author != null) ...[
+                    const SizedBox(height: 6),
                     Text(book.author!,
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineSmall
-                            ?.copyWith(color: AppColors.muted)),
+                        style: TextStyle(
+                          fontFamily: 'Manrope', fontSize: 16,
+                          fontWeight: FontWeight.w500, color: AppColors.muted,
+                        )),
+                  ],
 
-                  const SizedBox(height: 14),
-
-                  // Categories as dot-separated text
-                  if (book.categories.isNotEmpty)
+                  if (book.categories.isNotEmpty) ...[
+                    const SizedBox(height: 12),
                     Text(
                       book.categories.map((c) => c.name).join(' · '),
-                      style: Theme.of(context)
-                          .textTheme
-                          .labelMedium
-                          ?.copyWith(color: AppColors.muted, fontSize: 12),
+                      style: const TextStyle(
+                        fontFamily: 'Manrope', fontSize: 12,
+                        fontWeight: FontWeight.w600, color: AppColors.muted,
+                      ),
                     ),
+                  ],
 
-                  const SizedBox(height: 20),
-
-                  // Reading status — owned only
                   if (book.isOwned) ...[
-                    _SectionLabel('READING STATUS', context),
+                    const SizedBox(height: 24),
+                    Text('READING STATUS',
+                        style: TextStyle(
+                          fontFamily: 'Manrope', fontSize: 11,
+                          fontWeight: FontWeight.w700, color: AppColors.muted,
+                          letterSpacing: 1.5,
+                        )),
                     const SizedBox(height: 10),
                     Row(
                       children: ReadingStatus.values.map((s) {
@@ -147,8 +144,8 @@ class _DetailView extends ConsumerWidget {
                         return Padding(
                           padding: const EdgeInsets.only(right: 10),
                           child: GestureDetector(
-                            onTap: () => repo.setReadingStatus(
-                                book.id, active ? null : s),
+                            onTap: () =>
+                                repo.setReadingStatus(book.id, active ? null : s),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 150),
                               padding: const EdgeInsets.symmetric(
@@ -156,40 +153,41 @@ class _DetailView extends ConsumerWidget {
                               decoration: BoxDecoration(
                                 color: active ? ink : Colors.transparent,
                                 border: Border.all(
-                                    color: active ? ink : AppColors.muted,
+                                    color: active ? ink : AppColors.muted.withOpacity(0.5),
                                     width: 1.5),
-                                borderRadius: BorderRadius.circular(4),
+                                borderRadius: BorderRadius.circular(6),
                               ),
-                              child: Text(
-                                s.label,
-                                style: TextStyle(
-                                  fontFamily: 'Manrope',
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: active ? paper : AppColors.muted,
-                                ),
-                              ),
+                              child: Text(s.label,
+                                  style: TextStyle(
+                                    fontFamily: 'Manrope', fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: active ? paper : AppColors.muted,
+                                  )),
                             ),
                           ),
                         );
                       }).toList(),
                     ),
-                    const SizedBox(height: 24),
                   ],
 
-                  // Summary
                   if (book.summary?.isNotEmpty == true) ...[
-                    _SectionLabel('SUMMARY', context),
+                    const SizedBox(height: 24),
+                    Text('SUMMARY',
+                        style: TextStyle(
+                          fontFamily: 'Manrope', fontSize: 11,
+                          fontWeight: FontWeight.w700, color: AppColors.muted,
+                          letterSpacing: 1.5,
+                        )),
                     const SizedBox(height: 10),
                     Text(book.summary!,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(height: 1.6)),
-                    const SizedBox(height: 28),
+                        style: TextStyle(
+                          fontFamily: 'Manrope', fontSize: 14,
+                          fontWeight: FontWeight.w400, color: ink, height: 1.65,
+                        )),
                   ],
 
-                  // Primary action
+                  const SizedBox(height: 32),
+
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
@@ -204,19 +202,15 @@ class _DetailView extends ConsumerWidget {
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 18),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6)),
+                            borderRadius: BorderRadius.circular(10)),
                         backgroundColor: ink,
                         foregroundColor: paper,
                       ),
                       child: Text(
-                        book.isOwned
-                            ? 'MOVE TO WISHLIST'
-                            : 'MOVE TO LIBRARY',
+                        book.isOwned ? 'MOVE TO WISHLIST' : 'MOVE TO LIBRARY',
                         style: const TextStyle(
-                          fontFamily: 'Manrope',
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13,
-                          letterSpacing: 0.8,
+                          fontFamily: 'Manrope', fontWeight: FontWeight.w800,
+                          fontSize: 13, letterSpacing: 0.8,
                         ),
                       ),
                     ),
@@ -229,47 +223,57 @@ class _DetailView extends ConsumerWidget {
       ),
     );
   }
+}
 
-  void _showMenu(BuildContext context, WidgetRef ref) {
+// Hamburger — PopupMenuButton opens the menu near the button, not bottom sheet.
+class _MenuButton extends ConsumerWidget {
+  final Book book;
+  final Color paper;
+  final Color ink;
+  const _MenuButton({required this.book, required this.paper, required this.ink});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.read(bookRepositoryProvider);
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              width: 36, height: 3,
-              decoration: BoxDecoration(
-                  color: AppColors.muted.withOpacity(0.4),
-                  borderRadius: BorderRadius.circular(2)),
-            ),
-            ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: const Text('Edit', style: TextStyle(fontFamily: 'Manrope')),
-              onTap: () {
-                Navigator.pop(context);
-                _openEdit(context, ref);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline_rounded,
-                  color: AppColors.blood),
-              title: const Text('Delete',
-                  style: TextStyle(fontFamily: 'Manrope', color: AppColors.blood)),
-              onTap: () {
-                Navigator.pop(context);
-                repo.softDelete(book.id);
-                Navigator.pop(context);
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
+    return PopupMenuButton<String>(
+      onSelected: (value) {
+        switch (value) {
+          case 'edit': _openEdit(context, ref);
+          case 'delete':
+            repo.softDelete(book.id);
+            Navigator.pop(context);
+        }
+      },
+      itemBuilder: (_) => [
+        PopupMenuItem(
+          value: 'edit',
+          child: Row(children: [
+            const Icon(Icons.edit_outlined, size: 17),
+            const SizedBox(width: 12),
+            Text('Edit', style: TextStyle(fontFamily: 'Manrope', fontSize: 14,
+                fontWeight: FontWeight.w500, color: ink)),
+          ]),
         ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: 'delete',
+          child: Row(children: [
+            const Icon(Icons.delete_outline_rounded, size: 17, color: AppColors.blood),
+            const SizedBox(width: 12),
+            const Text('Delete', style: TextStyle(fontFamily: 'Manrope', fontSize: 14,
+                fontWeight: FontWeight.w500, color: AppColors.blood)),
+          ]),
+        ),
+      ],
+      // Style the trigger button to match the nav circle buttons
+      child: Container(
+        margin: const EdgeInsets.all(6),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: paper.withOpacity(0.85),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(Icons.more_vert_rounded, size: 20, color: ink),
       ),
     );
   }
@@ -280,7 +284,7 @@ class _DetailView extends ConsumerWidget {
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => _EditSheet(book: book),
+      builder: (_) => _EditSheet(book: book),
     );
   }
 }
@@ -291,10 +295,11 @@ class _EditSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+        color: isDark ? AppColors.dkPaper : AppColors.paper,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -302,35 +307,26 @@ class _EditSheet extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Container(width: 36, height: 3,
-              decoration: BoxDecoration(
-                color: AppColors.muted.withOpacity(0.4),
-                borderRadius: BorderRadius.circular(2))),
+              decoration: BoxDecoration(color: AppColors.muted.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2))),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 8, 0),
-            child: Row(
-              children: [
-                Text('Edit book',
-                    style: Theme.of(context).textTheme.headlineSmall),
-                const Spacer(),
-                IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context)),
-              ],
-            ),
+            child: Row(children: [
+              Text('Edit book',
+                  style: Theme.of(context).textTheme.headlineMedium),
+              const Spacer(),
+              IconButton(icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context)),
+            ]),
           ),
           Flexible(
             child: BookFormWidget(
-              initialTitle: book.title,
-              initialAuthor: book.author,
-              initialIsbn: book.isbn,
-              initialSummary: book.summary,
-              initialCategories: book.categories,
-              isEditing: true,
-              onSave: ({
-                required title, author, isbn, summary,
-                required categoryIds,
-              }) async {
+              initialTitle: book.title, initialAuthor: book.author,
+              initialIsbn: book.isbn, initialSummary: book.summary,
+              initialCategories: book.categories, isEditing: true,
+              onSave: ({required title, author, isbn, summary,
+                  required categoryIds}) async {
                 await ref.read(bookRepositoryProvider).updateBook(
                     id: book.id, title: title, author: author,
                     isbn: isbn, summary: summary, categoryIds: categoryIds);
@@ -344,55 +340,39 @@ class _EditSheet extends ConsumerWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Full-width cover (detail screen)
-// ---------------------------------------------------------------------------
-
+// Full cover image for the detail header
 class _FullCover extends ConsumerWidget {
   final Book book;
   const _FullCover({required this.book});
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final docsDir = ref.watch(docsDirProvider);
     final stored  = book.coverFullPath ?? book.coverThumbPath;
-
     if (stored != null) {
-      final resolved =
-          p.isAbsolute(stored) ? stored : p.join(docsDir, stored);
+      final resolved = p.isAbsolute(stored) ? stored : p.join(docsDir, stored);
       if (File(resolved).existsSync()) {
-        return Image.file(
-          File(resolved),
-          width: double.infinity,
-          height: double.infinity,
-          fit: BoxFit.cover,
-          alignment: Alignment.topCenter, // keep title of cover in frame
-        );
+        return Image.file(File(resolved),
+            width: double.infinity, height: double.infinity,
+            fit: BoxFit.cover, alignment: Alignment.topCenter);
       }
     }
-    // Placeholder gradient
-    final hue =
-        (book.initials.codeUnits.fold(0, (a, b) => a + b) * 47) % 360;
+    final hue = (book.initials.codeUnits.fold(0, (a, b) => a + b) * 47) % 360;
     final color = HSLColor.fromAHSL(1, hue.toDouble(), 0.35, 0.38).toColor();
-    return Container(
-      color: color,
-      alignment: Alignment.center,
-      child: Text(book.initials,
-          style: const TextStyle(fontFamily: 'Manrope',
-              fontSize: 56, fontWeight: FontWeight.w800, color: Colors.white)),
-    );
+    return Container(color: color, alignment: Alignment.center,
+        child: Text(book.initials,
+            style: const TextStyle(fontFamily: 'Manrope', fontSize: 56,
+                fontWeight: FontWeight.w800, color: Colors.white)));
   }
 }
 
-// Floating nav button overlaid on the cover
-class _NavButton extends StatelessWidget {
+// Circle button overlaid on the cover
+class _CircleButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-  final Color? color;
-  final Color paper;
-  const _NavButton({required this.icon, required this.onTap,
-      required this.paper, this.color});
-
+  final Color? iconColor;
+  final Color paper, ink;
+  const _CircleButton({required this.icon, required this.onTap,
+      required this.paper, required this.ink, this.iconColor});
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -400,22 +380,9 @@ class _NavButton extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.all(6),
         padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: paper.withOpacity(0.85),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, size: 20,
-            color: color ?? (paper == AppColors.paper ? AppColors.ink : AppColors.dkInk)),
+        decoration: BoxDecoration(color: paper.withOpacity(0.85), shape: BoxShape.circle),
+        child: Icon(icon, size: 20, color: iconColor ?? ink),
       ),
     );
   }
-}
-
-Widget _SectionLabel(String text, BuildContext context) {
-  return Text(text,
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            letterSpacing: 1.5,
-            color: AppColors.muted,
-            fontWeight: FontWeight.w700,
-          ));
 }
