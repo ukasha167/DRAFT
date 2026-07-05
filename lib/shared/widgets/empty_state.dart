@@ -22,8 +22,8 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final subtle = Theme.of(context).brightness == Brightness.dark
-        ? AppColors.ink
-        : AppColors.dkInk;
+        ? AppColors.dkMuted
+        : AppColors.muted;
 
     return Center(
       child: Padding(
