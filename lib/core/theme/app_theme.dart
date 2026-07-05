@@ -39,7 +39,7 @@ abstract final class AppTheme {
   static final light = ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
-    fontFamily: 'Manrope',
+    
     colorScheme: const ColorScheme.light(
       primary:    AppColors.ink,
       onPrimary:  AppColors.paper,
@@ -68,10 +68,10 @@ abstract final class AppTheme {
         backgroundColor: WidgetStateProperty.all(AppColors.ink),
         foregroundColor: WidgetStateProperty.all(AppColors.paper),
         textStyle: WidgetStateProperty.all(
-          const TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, fontSize: 14),
+          const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
         ),
         shape: WidgetStateProperty.all(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
         ),
         padding: WidgetStateProperty.all(
           const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
@@ -85,10 +85,10 @@ abstract final class AppTheme {
           const BorderSide(color: AppColors.ink, width: 1.5),
         ),
         textStyle: WidgetStateProperty.all(
-          const TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600, fontSize: 14),
+          const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         ),
         shape: WidgetStateProperty.all(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
         ),
       ),
     ),
@@ -100,7 +100,7 @@ abstract final class AppTheme {
       shadowColor: Colors.black.withOpacity(0.14),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       textStyle: const TextStyle(
-        fontFamily: 'Manrope', fontSize: 14,
+        fontSize: 14,
         fontWeight: FontWeight.w500, color: AppColors.ink,
       ),
     ),
@@ -108,7 +108,7 @@ abstract final class AppTheme {
       behavior: SnackBarBehavior.floating,
       backgroundColor: AppColors.ink,
       contentTextStyle: TextStyle(
-        fontFamily: 'Manrope', fontSize: 13,
+        fontSize: 13,
         fontWeight: FontWeight.w500, color: AppColors.paper,
       ),
     ),
@@ -120,7 +120,7 @@ abstract final class AppTheme {
   static final dark = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
-    fontFamily: 'Manrope',
+    
     colorScheme: const ColorScheme.dark(
       primary:    AppColors.dkInk,
       onPrimary:  AppColors.dkPaper,
@@ -149,10 +149,10 @@ abstract final class AppTheme {
         backgroundColor: WidgetStateProperty.all(AppColors.dkInk),
         foregroundColor: WidgetStateProperty.all(AppColors.dkPaper),
         textStyle: WidgetStateProperty.all(
-          const TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700, fontSize: 14),
+          const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
         ),
         shape: WidgetStateProperty.all(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
         ),
         padding: WidgetStateProperty.all(
           const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
@@ -166,10 +166,10 @@ abstract final class AppTheme {
           const BorderSide(color: AppColors.dkInk, width: 1.5),
         ),
         textStyle: WidgetStateProperty.all(
-          const TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w600, fontSize: 14),
+          const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         ),
         shape: WidgetStateProperty.all(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
         ),
       ),
     ),
@@ -181,7 +181,7 @@ abstract final class AppTheme {
       shadowColor: Colors.black.withOpacity(0.45),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       textStyle: const TextStyle(
-        fontFamily: 'Manrope', fontSize: 14,
+        fontSize: 14,
         fontWeight: FontWeight.w500, color: AppColors.dkInk,
       ),
     ),
@@ -189,7 +189,7 @@ abstract final class AppTheme {
       behavior: SnackBarBehavior.floating,
       backgroundColor: AppColors.dkInk,
       contentTextStyle: TextStyle(
-        fontFamily: 'Manrope', fontSize: 13,
+        fontSize: 13,
         fontWeight: FontWeight.w500, color: AppColors.dkPaper,
       ),
     ),
@@ -204,67 +204,67 @@ abstract final class AppTheme {
     return TextTheme(
       // Display — "LIBRARY", "WISHLIST", book title in detail
       displayLarge: TextStyle(
-        fontFamily: 'Manrope', fontSize: 38, fontWeight: FontWeight.w800,
+        fontSize: 38, fontWeight: FontWeight.w800,
         color: base, letterSpacing: -0.5, height: 1.1,
       ),
       displayMedium: TextStyle(
-        fontFamily: 'Manrope', fontSize: 30, fontWeight: FontWeight.w800,
+        fontSize: 30, fontWeight: FontWeight.w800,
         color: base, letterSpacing: -0.3, height: 1.15,
       ),
       displaySmall: TextStyle(
-        fontFamily: 'Manrope', fontSize: 24, fontWeight: FontWeight.w800,
+        fontSize: 24, fontWeight: FontWeight.w800,
         color: base, letterSpacing: -0.2, height: 1.2,
       ),
       // Headlines
       headlineLarge: TextStyle(
-        fontFamily: 'Manrope', fontSize: 22, fontWeight: FontWeight.w700,
+        fontSize: 22, fontWeight: FontWeight.w700,
         color: base,
       ),
       headlineMedium: TextStyle(
-        fontFamily: 'Manrope', fontSize: 18, fontWeight: FontWeight.w700,
+        fontSize: 18, fontWeight: FontWeight.w700,
         color: base,
       ),
       headlineSmall: TextStyle(
-        fontFamily: 'Manrope', fontSize: 16, fontWeight: FontWeight.w700,
+        fontSize: 16, fontWeight: FontWeight.w700,
         color: base,
       ),
       // Titles
       titleLarge: TextStyle(
-        fontFamily: 'Manrope', fontSize: 15, fontWeight: FontWeight.w700,
+        fontSize: 15, fontWeight: FontWeight.w700,
         color: base,
       ),
       titleMedium: TextStyle(
-        fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w600,
+        fontSize: 14, fontWeight: FontWeight.w600,
         color: base,
       ),
       titleSmall: TextStyle(
-        fontFamily: 'Manrope', fontSize: 13, fontWeight: FontWeight.w600,
+        fontSize: 13, fontWeight: FontWeight.w600,
         color: base,
       ),
       // Body
       bodyLarge: TextStyle(
-        fontFamily: 'Manrope', fontSize: 15, fontWeight: FontWeight.w400,
+        fontSize: 15, fontWeight: FontWeight.w400,
         color: base,
       ),
       bodyMedium: TextStyle(
-        fontFamily: 'Manrope', fontSize: 14, fontWeight: FontWeight.w400,
+        fontSize: 14, fontWeight: FontWeight.w400,
         color: base,
       ),
       bodySmall: TextStyle(
-        fontFamily: 'Manrope', fontSize: 12, fontWeight: FontWeight.w400,
+        fontSize: 12, fontWeight: FontWeight.w400,
         color: muted,
       ),
       // Labels
       labelLarge: TextStyle(
-        fontFamily: 'Manrope', fontSize: 13, fontWeight: FontWeight.w600,
+        fontSize: 13, fontWeight: FontWeight.w600,
         color: base,
       ),
       labelMedium: TextStyle(
-        fontFamily: 'Manrope', fontSize: 11, fontWeight: FontWeight.w600,
+        fontSize: 11, fontWeight: FontWeight.w600,
         color: muted,
       ),
       labelSmall: TextStyle(
-        fontFamily: 'Manrope', fontSize: 10, fontWeight: FontWeight.w500,
+        fontSize: 10, fontWeight: FontWeight.w500,
         color: muted, letterSpacing: 0.5,
       ),
     );
@@ -277,21 +277,21 @@ abstract final class AppTheme {
     required Color border,
   }) {
     final enabledBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(50),
       borderSide: BorderSide(color: border.withOpacity(0.15), width: 1),
     );
     return InputDecorationTheme(
       filled: true,
       fillColor: fill,
       hintStyle: TextStyle(
-        fontFamily: 'Manrope', fontSize: 14,
+        fontSize: 14,
         fontWeight: FontWeight.w400, color: hint,
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: enabledBorder,
       enabledBorder: enabledBorder,
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(50),
         borderSide: BorderSide(color: border, width: 1.5),
       ),
     );
