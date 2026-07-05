@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/debouncer.dart';
 import '../../../data/providers/repository_providers.dart';
@@ -109,7 +109,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Text(
                     isWishlist ? 'WISHLIST' : 'LIBRARY',
-                    style: Theme.of(context).textTheme.displayMedium,
+                    style: Theme.of(context).textTheme.displayLarge,
                   ),
                   const Spacer(),
                   // Toggle to the other view
@@ -142,8 +142,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     () => ref.read(searchTextProvider.notifier).state = v),
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
-                  hintText: 'Search by title or author…',
-                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                  hintText: '#Literature',
                   suffixIcon: _searchCtrl.text.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.close_rounded, size: 18),
@@ -217,15 +216,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _openAdd,
-        tooltip: 'Add book',
-        backgroundColor:
-            isDark ? AppColors.dkInk : AppColors.ink,
-        foregroundColor:
-            isDark ? AppColors.dkPaper : AppColors.paper,
-        child: const Icon(Icons.add_rounded),
-      ),
+      floatingActionButton: isWishlist
+          ? FloatingActionButton(
+              onPressed: _openAdd,
+              tooltip: 'Add book',
+              shape: const CircleBorder(),
+              backgroundColor: isDark ? AppColors.dkInk : AppColors.ink,
+              foregroundColor: isDark ? AppColors.dkPaper : AppColors.paper,
+              child: const Icon(Icons.add_rounded),
+            )
+          : null,
     );
   }
 
@@ -289,52 +289,40 @@ class _Grid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      const hPad = 16.0, gap = 12.0, cols = 2;
-      final colW     = (constraints.maxWidth - hPad * 2 - gap * (cols - 1)) / cols;
-      final coverH   = colW * 1.5;       // exact 2:3 ratio per column
-      final textH    = 62.0;             // title (2 lines) + author
-      final itemH    = coverH + 8 + textH;
-
-      return GridView.builder(
-        padding: EdgeInsets.fromLTRB(hPad, 16, hPad, 96),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: cols,
-          crossAxisSpacing: gap,
-          mainAxisSpacing: 20,
-          mainAxisExtent: itemH,
-        ),
-        itemCount: books.length,
-        itemBuilder: (_, i) {
-          final book = books[i];
-          return BookGridItem(
-            key: ValueKey(book.id),
-            book: book,
-            isWishlist: isWishlist,
-            onTap: () => onTap(book),
-            onEdit: () => onEdit(book),
-            onDelete: () => onDelete(book),
-            onFavoriteToggle: isWishlist ? null : () => onFavorite(book),
-            onMove: () => onMove(book),
-            // Move up/down: compute neighbor sort orders from the current list.
-            onMoveUp: isWishlist && i > 0
-                ? () => onReorder(
-                      book,
-                      i > 1 ? books[i - 2].sortOrder : null,
-                      books[i - 1].sortOrder,
-                    )
-                : null,
-            onMoveDown: isWishlist && i < books.length - 1
-                ? () => onReorder(
-                      book,
-                      books[i + 1].sortOrder,
-                      i < books.length - 2 ? books[i + 2].sortOrder : null,
-                    )
-                : null,
-          );
-        },
-      );
-    });
+    return MasonryGridView.count(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+      crossAxisCount: 2,
+      mainAxisSpacing: 20,
+      crossAxisSpacing: 12,
+      itemCount: books.length,
+      itemBuilder: (_, i) {
+        final book = books[i];
+        return BookGridItem(
+          key: ValueKey('${book.id}_$i'),
+          book: book,
+          isWishlist: isWishlist,
+          onTap: () => onTap(book),
+          onEdit: () => onEdit(book),
+          onDelete: () => onDelete(book),
+          onFavoriteToggle: isWishlist ? null : () => onFavorite(book),
+          onMove: () => onMove(book),
+          onMoveUp: isWishlist && i > 0
+              ? () => onReorder(
+                    book,
+                    i > 1 ? books[i - 2].sortOrder : null,
+                    books[i - 1].sortOrder,
+                  )
+              : null,
+          onMoveDown: isWishlist && i < books.length - 1
+              ? () => onReorder(
+                    book,
+                    books[i + 1].sortOrder,
+                    i < books.length - 2 ? books[i + 2].sortOrder : null,
+                  )
+              : null,
+        );
+      },
+    );
   }
 }
 
@@ -371,21 +359,10 @@ class _CategoryTab extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontFamily: 'Manrope',
+                
                 fontSize: 13,
-                fontWeight:
-                    isActive ? FontWeight.w700 : FontWeight.w400,
+                fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
                 color: isActive ? ink : AppColors.muted,
-              ),
-            ),
-            const SizedBox(height: 3),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              height: 2,
-              width: isActive ? 20 : 0,
-              decoration: BoxDecoration(
-                color: ink,
-                borderRadius: BorderRadius.circular(1),
               ),
             ),
           ],
