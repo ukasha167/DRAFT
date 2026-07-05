@@ -94,6 +94,16 @@ abstract final class AppTheme {
     ),
     dividerColor: AppColors.divide,
     cardTheme: const CardThemeData(elevation: 0, color: AppColors.cream),
+    popupMenuTheme: PopupMenuThemeData(
+      color: AppColors.paper,
+      elevation: 20,
+      shadowColor: Colors.black.withOpacity(0.14),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      textStyle: const TextStyle(
+        fontFamily: 'Manrope', fontSize: 14,
+        fontWeight: FontWeight.w500, color: AppColors.ink,
+      ),
+    ),
     snackBarTheme: const SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: AppColors.ink,
@@ -165,6 +175,16 @@ abstract final class AppTheme {
     ),
     dividerColor: AppColors.dkDivide,
     cardTheme: const CardThemeData(elevation: 0, color: AppColors.dkCream),
+    popupMenuTheme: PopupMenuThemeData(
+      color: AppColors.dkCream,
+      elevation: 20,
+      shadowColor: Colors.black.withOpacity(0.45),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      textStyle: const TextStyle(
+        fontFamily: 'Manrope', fontSize: 14,
+        fontWeight: FontWeight.w500, color: AppColors.dkInk,
+      ),
+    ),
     snackBarTheme: const SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: AppColors.dkInk,
