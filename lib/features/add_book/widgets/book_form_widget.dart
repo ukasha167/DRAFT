@@ -186,7 +186,7 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
                   child: Text(
                     cat.name,
                     style: TextStyle(
-                      fontFamily: 'Manrope',
+                      
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: selected
@@ -219,9 +219,9 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
                           strokeWidth: 2, color: paper),
                     )
                   : Text(
-                      widget.isEditing ? 'SAVE CHANGES' : 'ADD TO LIBRARY',
+                      widget.isEditing ? 'SAVE CHANGES' : 'Add To Wishlist',
                       style: const TextStyle(
-                        fontFamily: 'Manrope',
+                        
                         fontWeight: FontWeight.w800,
                         fontSize: 13,
                         letterSpacing: 0.8,
