@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../../core/theme/app_theme.dart';
@@ -154,7 +155,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       : null,
                 ),
               ),
-            ),
+            ).animate().fadeIn(duration: 400.ms, delay: 100.ms).slideX(begin: 0.05, duration: 400.ms, curve: Curves.easeOut),
 
             const SizedBox(height: 12),
 
@@ -182,7 +183,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       )),
                 ],
               ),
-            ),
+            ).animate().fadeIn(duration: 400.ms, delay: 150.ms).slideX(begin: 0.05, duration: 400.ms, curve: Curves.easeOut),
 
             const SizedBox(height: 8),
 
@@ -225,6 +226,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               foregroundColor: isDark ? AppColors.dkPaper : AppColors.paper,
               child: const Icon(Icons.add_rounded),
             )
+                .animate()
+                .scale(
+                    delay: 200.ms,
+                    duration: 400.ms,
+                    curve: Curves.easeOutBack)
           : null,
     );
   }
@@ -320,7 +326,14 @@ class _Grid extends StatelessWidget {
                     i < books.length - 2 ? books[i + 2].sortOrder : null,
                   )
               : null,
-        );
+        )
+            .animate()
+            .fadeIn(duration: 400.ms, delay: (i < 10 ? i * 50 : 0).ms)
+            .slideY(
+                begin: 0.05,
+                duration: 400.ms,
+                curve: Curves.easeOut,
+                delay: (i < 10 ? i * 50 : 0).ms);
       },
     );
   }
