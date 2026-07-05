@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
@@ -219,11 +220,19 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
     return ListView(
       padding: const EdgeInsets.only(top: 8, bottom: 24),
       children: [
-        ...candidates.map((c) => _CandidateTile(
-              candidate: c,
-              onTap: () =>
-                  ref.read(addBookProvider.notifier).selectCandidate(c),
-            )),
+        for (var i = 0; i < candidates.length; i++)
+          _CandidateTile(
+            candidate: candidates[i],
+            onTap: () =>
+                ref.read(addBookProvider.notifier).selectCandidate(candidates[i]),
+          )
+              .animate()
+              .fadeIn(duration: 400.ms, delay: (i < 10 ? i * 50 : 0).ms)
+              .slideX(
+                  begin: 0.05,
+                  duration: 400.ms,
+                  curve: Curves.easeOut,
+                  delay: (i < 10 ? i * 50 : 0).ms),
         const Divider(height: 24),
         Center(
           child: TextButton.icon(
