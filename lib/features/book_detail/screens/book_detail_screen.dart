@@ -1,7 +1,10 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:markdown/markdown.dart' as md;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
@@ -46,44 +49,183 @@ class _Detail extends ConsumerWidget {
     final paper  = isDark ? AppColors.dkPaper : AppColors.paper;
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // ── Cover + nav overlay ─────────────────────────────────
-          SliverToBoxAdapter(
-            child: Stack(
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  height: MediaQuery.of(context).size.height * 0.60,
-                  child: _FullCover(book: book),
-                ),
-                // Nav controls overlaid on cover
-                SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    child: Row(
-                      children: [
-                        _CircleButton(
-                          icon: Icons.arrow_back_rounded,
-                          paper: paper, ink: ink,
-                          onTap: () => Navigator.pop(context),
-                        ),
-                        const Spacer(),
-                        // Favourite
-                        if (book.isOwned)
-                          _CircleButton(
-                            icon: book.isFavorite
-                                ? Icons.favorite_rounded
-                                : Icons.favorite_border_rounded,
-                            iconColor: book.isFavorite ? AppColors.blood : null,
-                            paper: paper, ink: ink,
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              repo.toggleFavorite(book.id, !book.isFavorite);
-                            },
+      body: Stack(
+        children: [
+          // ShaderMask creates a smooth gradient fade toward the bottom
+          ShaderMask(
+            shaderCallback: (rect) => const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.white, Colors.white, Colors.transparent],
+              stops: [0.0, 0.72, 1.0],
+            ).createShader(rect),
+            blendMode: BlendMode.dstIn,
+            child: CustomScrollView(
+              slivers: [
+                // ── Cover + nav overlay ─────────────────────────────────
+                SliverToBoxAdapter(
+                  child: Stack(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        height: MediaQuery.of(context).size.height * 0.60,
+                        child: _FullCover(book: book),
+                      ),
+                      // Nav controls overlaid on cover
+                      SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          child: Row(
+                            children: [
+                              _CircleButton(
+                                icon: Icons.arrow_back_rounded,
+                                paper: paper, ink: ink,
+                                onTap: () => Navigator.pop(context),
+                              ),
+                              const Spacer(),
+                              // Favourite
+                              if (book.isOwned)
+                                _CircleButton(
+                                  icon: book.isFavorite
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  iconColor: book.isFavorite ? AppColors.blood : null,
+                                  paper: paper, ink: ink,
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    repo.toggleFavorite(book.id, !book.isFavorite);
+                                  },
+                                ),
+                              // Menu — PopupMenuButton opens near the button, not bottom
+                              _MenuButton(book: book, paper: paper, ink: ink),
+                            ],
                           ),
-                        // Menu — PopupMenuButton opens near the button, not bottom
-                        _MenuButton(book: book, paper: paper, ink: ink),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // ── Content ────────────────────────────────────────────
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 22, 20, 140),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          book.title.toUpperCase(),
+                          style: TextStyle(
+
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            color: ink,
+                            letterSpacing: -0.5,
+                            height: 1.15,
+                          ),
+                        ),
+                        if (book.author != null) ...[
+                          const SizedBox(height: 6),
+                          Text(book.author!,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500, color: AppColors.muted,
+                              )),
+                        ],
+
+                        if (book.categories.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text.rich(
+                            TextSpan(
+                              children: [
+                                const TextSpan(
+                                  text: 'Categories: ',
+                                  style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.ink),
+                                ),
+                                TextSpan(text: book.categories.map((c) => c.name).join(', ')),
+                              ],
+                            ),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500, color: AppColors.muted,
+                            ),
+                          ),
+                        ],
+
+                        if (book.summary?.isNotEmpty == true) ...[
+                          const SizedBox(height: 8),
+                          const Text(
+                            'SUMMARY',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700, color: AppColors.muted,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          MarkdownBody(
+                            data: book.summary!
+                                .replaceAll('*', '')
+                                .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n\n')
+                                .replaceAll(RegExp(r'</?(b|i)>', caseSensitive: false), ''),
+                            extensionSet: md.ExtensionSet.gitHubFlavored,
+                            styleSheet: MarkdownStyleSheet(
+                              p: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w400, color: ink, height: 1.65,
+                              ),
+                              strong: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800, color: ink, height: 1.65,
+                              ),
+                              em: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w400, fontStyle: FontStyle.italic, color: ink, height: 1.65,
+                              ),
+                            ),
+                          ),
+                        ],
+
+                        if (book.isOwned) ...[
+                          const SizedBox(height: 24),
+                          const Text('READING STATUS',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700, color: AppColors.muted,
+                                letterSpacing: 1.5,
+                              )),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: ReadingStatus.values.map((s) {
+                              final active = book.readingStatus == s;
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 10),
+                                child: GestureDetector(
+                                  onTap: () =>
+                                      repo.setReadingStatus(book.id, active ? null : s),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 150),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: active ? ink : Colors.transparent,
+                                      border: Border.all(
+                                          color: active ? ink : AppColors.muted.withOpacity(0.5),
+                                          width: 1.5),
+                                      borderRadius: BorderRadius.circular(50),
+                                    ),
+                                    child: Text(s.label,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: active ? paper : AppColors.muted,
+                                        )),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -92,142 +234,31 @@ class _Detail extends ConsumerWidget {
             ),
           ),
 
-          // ── Content ────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 22, 20, 48),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    book.title.toUpperCase(),
-                    style: TextStyle(
-                      
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      color: ink,
-                      letterSpacing: -0.5,
-                      height: 1.15,
-                    ),
-                  ),
-                  if (book.author != null) ...[
-                    const SizedBox(height: 6),
-                    Text(book.author!,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500, color: AppColors.muted,
-                        )),
-                  ],
-
-                  if (book.categories.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Text.rich(
-                      TextSpan(
-                        children: [
-                          const TextSpan(
-                            text: 'Categories: ',
-                            style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.ink),
-                          ),
-                          TextSpan(text: book.categories.map((c) => c.name).join(', ')),
-                        ],
-                      ),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500, color: AppColors.muted,
-                      ),
-                    ),
-                  ],
-
-                  if (book.isOwned) ...[
-                    const SizedBox(height: 24),
-                    Text('READING STATUS',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700, color: AppColors.muted,
-                          letterSpacing: 1.5,
-                        )),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: ReadingStatus.values.map((s) {
-                        final active = book.readingStatus == s;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 10),
-                          child: GestureDetector(
-                            onTap: () =>
-                                repo.setReadingStatus(book.id, active ? null : s),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: active ? ink : Colors.transparent,
-                                border: Border.all(
-                                    color: active ? ink : AppColors.muted.withOpacity(0.5),
-                                    width: 1.5),
-                                borderRadius: BorderRadius.circular(50),
-                              ),
-                              child: Text(s.label,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: active ? paper : AppColors.muted,
-                                  )),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ],
-
-                  if (book.summary?.isNotEmpty == true) ...[
-                    const SizedBox(height: 24),
-                    Text.rich(
-                      TextSpan(
-                        children: [
-                          const TextSpan(
-                            text: 'Summary: ',
-                            style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.ink),
-                          ),
-                          TextSpan(text: book.summary!),
-                        ],
-                      ),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400, color: ink, height: 1.65,
-                      ),
-                    ),
-                  ],
-
-                  const SizedBox(height: 32),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: () {
-                        if (book.isOwned) {
-                          repo.moveToWishlist(book.id);
-                        } else {
-                          repo.moveToOwned(book.id);
-                        }
-                        Navigator.pop(context);
-                      },
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(50)),
-                        backgroundColor: ink,
-                        foregroundColor: paper,
-                      ),
-                      child: Text(
-                        book.isOwned ? 'MOVE TO WISHLIST' : 'MOVE TO LIBRARY',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13, letterSpacing: 0.8,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+          // Button floats above the fade — no blur, just clean
+          Positioned(
+            left: 20, right: 20, bottom: 36,
+            child: FilledButton(
+              onPressed: () {
+                if (book.isOwned) {
+                  repo.moveToWishlist(book.id);
+                } else {
+                  repo.moveToOwned(book.id);
+                }
+                Navigator.pop(context);
+              },
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(40)),
+                backgroundColor: ink,
+                foregroundColor: paper,
+              ),
+              child: Text(
+                book.isOwned ? 'MOVE TO WISHLIST' : 'MOVE TO LIBRARY',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14, letterSpacing: 0.8,
+                ),
               ),
             ),
           ),
@@ -371,7 +402,7 @@ class _FullCover extends ConsumerWidget {
     final bgColor = isDark ? AppColors.dkCream : AppColors.cream;
     final docsDir = ref.watch(docsDirProvider);
     final stored  = book.coverFullPath ?? book.coverThumbPath;
-    
+
     Widget coverContent;
     bool found = false;
 
