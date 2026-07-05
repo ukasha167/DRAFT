@@ -106,7 +106,7 @@ class _Placeholder extends StatelessWidget {
       child: Text(
         initials,
         style: TextStyle(
-          fontFamily: 'Manrope',
+          
           fontSize: fontSize,
           fontWeight: FontWeight.w700,
           color: Colors.white,
