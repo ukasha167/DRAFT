@@ -23,7 +23,7 @@ class CategoryChip extends StatelessWidget {
         onDeleted: onRemove,
         backgroundColor: bg,
         labelStyle: const TextStyle(
-          fontFamily: 'Manrope',
+          
           fontSize: 12,
           fontWeight: FontWeight.w600,
           color: AppColors.ink,
@@ -45,7 +45,7 @@ class CategoryChip extends StatelessWidget {
       child: Text(
         category.name,
         style: const TextStyle(
-          fontFamily: 'Manrope',
+          
           fontSize: 11,
           fontWeight: FontWeight.w600,
           color: AppColors.ink,
