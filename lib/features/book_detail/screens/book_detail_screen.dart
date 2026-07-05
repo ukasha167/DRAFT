@@ -54,7 +54,7 @@ class _Detail extends ConsumerWidget {
               children: [
                 SizedBox(
                   width: double.infinity,
-                  height: 310,
+                  height: MediaQuery.of(context).size.height * 0.60,
                   child: _FullCover(book: book),
                 ),
                 // Nav controls overlaid on cover
@@ -70,17 +70,18 @@ class _Detail extends ConsumerWidget {
                         ),
                         const Spacer(),
                         // Favourite
-                        _CircleButton(
-                          icon: book.isFavorite
-                              ? Icons.favorite_rounded
-                              : Icons.favorite_border_rounded,
-                          iconColor: book.isFavorite ? AppColors.blood : null,
-                          paper: paper, ink: ink,
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            repo.toggleFavorite(book.id, !book.isFavorite);
-                          },
-                        ),
+                        if (book.isOwned)
+                          _CircleButton(
+                            icon: book.isFavorite
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            iconColor: book.isFavorite ? AppColors.blood : null,
+                            paper: paper, ink: ink,
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              repo.toggleFavorite(book.id, !book.isFavorite);
+                            },
+                          ),
                         // Menu — PopupMenuButton opens near the button, not bottom
                         _MenuButton(book: book, paper: paper, ink: ink),
                       ],
@@ -101,30 +102,38 @@ class _Detail extends ConsumerWidget {
                   Text(
                     book.title.toUpperCase(),
                     style: TextStyle(
-                      fontFamily: 'Manrope',
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
+                      
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
                       color: ink,
-                      letterSpacing: -0.3,
+                      letterSpacing: -0.5,
                       height: 1.15,
                     ),
                   ),
                   if (book.author != null) ...[
                     const SizedBox(height: 6),
                     Text(book.author!,
-                        style: TextStyle(
-                          fontFamily: 'Manrope', fontSize: 16,
+                        style: const TextStyle(
+                          fontSize: 18,
                           fontWeight: FontWeight.w500, color: AppColors.muted,
                         )),
                   ],
 
                   if (book.categories.isNotEmpty) ...[
                     const SizedBox(height: 12),
-                    Text(
-                      book.categories.map((c) => c.name).join(' · '),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          const TextSpan(
+                            text: 'Categories: ',
+                            style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.ink),
+                          ),
+                          TextSpan(text: book.categories.map((c) => c.name).join(', ')),
+                        ],
+                      ),
                       style: const TextStyle(
-                        fontFamily: 'Manrope', fontSize: 12,
-                        fontWeight: FontWeight.w600, color: AppColors.muted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500, color: AppColors.muted,
                       ),
                     ),
                   ],
@@ -133,7 +142,7 @@ class _Detail extends ConsumerWidget {
                     const SizedBox(height: 24),
                     Text('READING STATUS',
                         style: TextStyle(
-                          fontFamily: 'Manrope', fontSize: 11,
+                          fontSize: 11,
                           fontWeight: FontWeight.w700, color: AppColors.muted,
                           letterSpacing: 1.5,
                         )),
@@ -155,11 +164,11 @@ class _Detail extends ConsumerWidget {
                                 border: Border.all(
                                     color: active ? ink : AppColors.muted.withOpacity(0.5),
                                     width: 1.5),
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(50),
                               ),
                               child: Text(s.label,
                                   style: TextStyle(
-                                    fontFamily: 'Manrope', fontSize: 12,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                     color: active ? paper : AppColors.muted,
                                   )),
@@ -172,18 +181,21 @@ class _Detail extends ConsumerWidget {
 
                   if (book.summary?.isNotEmpty == true) ...[
                     const SizedBox(height: 24),
-                    Text('SUMMARY',
-                        style: TextStyle(
-                          fontFamily: 'Manrope', fontSize: 11,
-                          fontWeight: FontWeight.w700, color: AppColors.muted,
-                          letterSpacing: 1.5,
-                        )),
-                    const SizedBox(height: 10),
-                    Text(book.summary!,
-                        style: TextStyle(
-                          fontFamily: 'Manrope', fontSize: 14,
-                          fontWeight: FontWeight.w400, color: ink, height: 1.65,
-                        )),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          const TextSpan(
+                            text: 'Summary: ',
+                            style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.ink),
+                          ),
+                          TextSpan(text: book.summary!),
+                        ],
+                      ),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400, color: ink, height: 1.65,
+                      ),
+                    ),
                   ],
 
                   const SizedBox(height: 32),
@@ -202,14 +214,14 @@ class _Detail extends ConsumerWidget {
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 18),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                            borderRadius: BorderRadius.circular(50)),
                         backgroundColor: ink,
                         foregroundColor: paper,
                       ),
                       child: Text(
                         book.isOwned ? 'MOVE TO WISHLIST' : 'MOVE TO LIBRARY',
                         style: const TextStyle(
-                          fontFamily: 'Manrope', fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w800,
                           fontSize: 13, letterSpacing: 0.8,
                         ),
                       ),
@@ -235,7 +247,11 @@ class _MenuButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.read(bookRepositoryProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return PopupMenuButton<String>(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      elevation: 12,
+      color: isDark ? AppColors.dkPaper : AppColors.paper,
       onSelected: (value) {
         switch (value) {
           case 'edit': _openEdit(context, ref);
@@ -247,21 +263,25 @@ class _MenuButton extends ConsumerWidget {
       itemBuilder: (_) => [
         PopupMenuItem(
           value: 'edit',
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Row(children: [
-            const Icon(Icons.edit_outlined, size: 17),
-            const SizedBox(width: 12),
-            Text('Edit', style: TextStyle(fontFamily: 'Manrope', fontSize: 14,
-                fontWeight: FontWeight.w500, color: ink)),
+            const Icon(Icons.edit_outlined, size: 22),
+            const SizedBox(width: 16),
+            Text('Edit', style: TextStyle(fontSize: 16,
+                fontWeight: FontWeight.w700, color: ink, letterSpacing: -0.2)),
           ]),
         ),
-        const PopupMenuDivider(),
+        const PopupMenuDivider(height: 1),
         PopupMenuItem(
           value: 'delete',
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Row(children: [
-            const Icon(Icons.delete_outline_rounded, size: 17, color: AppColors.blood),
-            const SizedBox(width: 12),
-            const Text('Delete', style: TextStyle(fontFamily: 'Manrope', fontSize: 14,
-                fontWeight: FontWeight.w500, color: AppColors.blood)),
+            const Icon(Icons.delete_outline_rounded, size: 22, color: AppColors.blood),
+            const SizedBox(width: 16),
+            const Text('Delete', style: TextStyle(fontSize: 16,
+                fontWeight: FontWeight.w700, color: AppColors.blood, letterSpacing: -0.2)),
           ]),
         ),
       ],
@@ -344,24 +364,61 @@ class _EditSheet extends ConsumerWidget {
 class _FullCover extends ConsumerWidget {
   final Book book;
   const _FullCover({required this.book});
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? AppColors.dkCream : AppColors.cream;
     final docsDir = ref.watch(docsDirProvider);
     final stored  = book.coverFullPath ?? book.coverThumbPath;
+    
+    Widget coverContent;
+    bool found = false;
+
     if (stored != null) {
       final resolved = p.isAbsolute(stored) ? stored : p.join(docsDir, stored);
       if (File(resolved).existsSync()) {
-        return Image.file(File(resolved),
+        coverContent = Image.file(File(resolved),
             width: double.infinity, height: double.infinity,
             fit: BoxFit.cover, alignment: Alignment.topCenter);
+        found = true;
+      } else {
+        coverContent = const SizedBox();
       }
+    } else {
+      coverContent = const SizedBox();
     }
-    final hue = (book.initials.codeUnits.fold(0, (a, b) => a + b) * 47) % 360;
-    final color = HSLColor.fromAHSL(1, hue.toDouble(), 0.35, 0.38).toColor();
-    return Container(color: color, alignment: Alignment.center,
-        child: Text(book.initials,
-            style: const TextStyle(fontFamily: 'Manrope', fontSize: 56,
-                fontWeight: FontWeight.w800, color: Colors.white)));
+
+    if (!found) {
+      final hue = (book.initials.codeUnits.fold(0, (a, b) => a + b) * 47) % 360;
+      final color = HSLColor.fromAHSL(1, hue.toDouble(), 0.35, 0.38).toColor();
+      coverContent = Container(color: color, alignment: Alignment.center,
+          child: Text(book.initials,
+              style: const TextStyle(fontSize: 56,
+                  fontWeight: FontWeight.w800, color: Colors.white)));
+    }
+
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: bgColor,
+      padding: const EdgeInsets.fromLTRB(70, 70, 70, 30),
+      child: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.5 : 0.15),
+              blurRadius: 24,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: coverContent,
+        ),
+      ),
+    );
   }
 }
 
