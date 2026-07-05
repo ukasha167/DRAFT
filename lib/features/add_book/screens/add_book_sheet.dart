@@ -6,6 +6,7 @@ import '../../../core/utils/debouncer.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/book_lookup_repository.dart';
 import '../../../domain/models/book.dart';
+import '../../../domain/models/category.dart';
 import '../providers/add_book_providers.dart';
 import '../widgets/book_form_widget.dart';
 
