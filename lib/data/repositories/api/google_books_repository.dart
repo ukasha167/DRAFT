@@ -3,11 +3,12 @@ import 'dart:collection';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 
+import '../../../api_keys.dart';
 import '../book_lookup_repository.dart';
 
 class GoogleBooksRepository implements BookLookupRepository {
   // Set your key in Cloud Console: restrict to package name + signing cert.
-  static const _apiKey = 'YOUR_GOOGLE_BOOKS_API_KEY';
+  static const _apiKey = googleBooksApiKey;
   static const _gbBase = 'https://www.googleapis.com/books/v1/volumes';
   static const _olBase = 'https://openlibrary.org/search.json';
 
@@ -21,8 +22,8 @@ class GoogleBooksRepository implements BookLookupRepository {
   GoogleBooksRepository()
       : _dio = Dio(
           BaseOptions(
-            connectTimeout: const Duration(seconds: 6),
-            receiveTimeout: const Duration(seconds: 8),
+            connectTimeout: const Duration(seconds: 4),
+            receiveTimeout: const Duration(seconds: 4),
           ),
         );
 
@@ -50,19 +51,12 @@ class GoogleBooksRepository implements BookLookupRepository {
 
     if (!hasInterface) return [];
 
-    // Try Google Books with one bounded retry.
+    // Try Google Books API. If it fails, fall back immediately.
     List<BookCandidate>? results;
     try {
       results = await _fetchGoogleBooks(query);
-    } catch (e) {
-      // Single retry after 300ms — not multi-step backoff.
-      // This is an interactive search the user is watching; fail fast.
-      await Future<void>.delayed(const Duration(milliseconds: 300));
-      try {
-        results = await _fetchGoogleBooks(query);
-      } catch (_) {
-        results = null; // Fall through to Open Library.
-      }
+    } catch (_) {
+      results = null; // Fall through to Open Library.
     }
 
     if (results != null && results.isNotEmpty) {
