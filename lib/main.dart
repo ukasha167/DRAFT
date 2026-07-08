@@ -18,10 +18,6 @@ void main() async {
 
   final db = AppDatabase();
 
-  // Resolve the documents directory ONCE before runApp.
-  // Cover images are stored as relative paths from this directory.
-  // iOS reassigns the container UUID on clean builds — storing absolute
-  // paths means covers vanish after every reinstall. Relative paths don't.
   final docsDir = await getApplicationDocumentsDirectory();
 
   runApp(
