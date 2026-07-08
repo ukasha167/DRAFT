@@ -3,6 +3,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/colors.dart';
+import '../../../core/theme/typography.dart';
 import '../../../core/utils/debouncer.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/book_lookup_repository.dart';
@@ -21,7 +23,7 @@ class AddBookSheet extends ConsumerStatefulWidget {
 class _AddBookSheetState extends ConsumerState<AddBookSheet> {
   final _searchCtrl = TextEditingController();
   final _debouncer = Debouncer(delay: const Duration(milliseconds: 450));
-  String? _customCoverPath; // Set when user picks a cover from gallery
+  String? _customCoverPath;
 
   @override
   void dispose() {
@@ -47,9 +49,9 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
     String? coverUrl,
     required BookStatus status,
   }) async {
-    // Soft duplicate warning — non-blocking.
-    final isDupe =
-        await ref.read(bookRepositoryProvider).isDuplicate(title, author);
+    final isDupe = await ref
+        .read(bookRepositoryProvider)
+        .isDuplicate(title, author);
     if (isDupe && mounted) {
       final proceed = await showDialog<bool>(
         context: context,
@@ -60,18 +62,22 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel')),
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
             TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Add anyway')),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Add anyway'),
+            ),
           ],
         ),
       );
       if (proceed != true || !mounted) return;
     }
 
-    await ref.read(bookRepositoryProvider).addBook(
+    await ref
+        .read(bookRepositoryProvider)
+        .addBook(
           title: title,
           status: status,
           author: author,
@@ -89,9 +95,6 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
   Widget build(BuildContext context) {
     final state = ref.watch(addBookProvider);
 
-    // Reset the custom cover whenever the state machine leaves the form phase
-    // (user pressed Back or selected a different book). Without this, the stale
-    // local path from a previous selection would be submitted with the new book.
     ref.listen<AddBookState>(addBookProvider, (prev, next) {
       if (next is! AddBookForm && _customCoverPath != null) {
         setState(() => _customCoverPath = null);
@@ -103,18 +106,17 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
       minChildSize: 0.5,
       maxChildSize: 0.97,
       builder: (context, scrollController) {
-        // Wrap in its own ScaffoldMessenger so that SnackBars shown from
-        // BookFormWidget appear inside the sheet overlay, not behind it.
         return ScaffoldMessenger(
           child: Scaffold(
             backgroundColor: Colors.transparent,
             body: Material(
               color: Theme.of(context).scaffoldBackgroundColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
               clipBehavior: Clip.hardEdge,
               child: Column(
                 children: [
-                  // Handle
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     child: Container(
@@ -127,13 +129,19 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
                     ),
                   ),
 
-                  // Header + close
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 8, 0),
                     child: Row(
                       children: [
-                        Text(_headerTitle(state),
-                            style: Theme.of(context).textTheme.titleLarge),
+                        Text(
+                          _headerTitle(state),
+                          style: clashDisplaySheetTitle.copyWith(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? draftInkDark
+                                : draftInk,
+                          ),
+                        ),
                         const Spacer(),
                         if (state is! AddBookIdle && state is! AddBookSearching)
                           TextButton(
@@ -151,13 +159,17 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
 
                   Expanded(
                     child: switch (state) {
-                      AddBookIdle() || AddBookSearching() || AddBookResults() ||
-                      AddBookNoResults() || AddBookError() =>
-                        _buildSearchPhase(state),
-                      AddBookForm(:final prefilled) =>
-                        _buildFormPhase(prefilled),
+                      AddBookIdle() ||
+                      AddBookSearching() ||
+                      AddBookResults() ||
+                      AddBookNoResults() ||
+                      AddBookError() => _buildSearchPhase(state),
+                      AddBookForm(:final prefilled) => _buildFormPhase(
+                        prefilled,
+                      ),
                       AddBookSaving() => const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2)),
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                       AddBookDone() => const SizedBox.shrink(),
                     },
                   ),
@@ -171,10 +183,10 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
   }
 
   String _headerTitle(AddBookState state) => switch (state) {
-        AddBookForm(prefilled: null) => 'MANUAL ENTRY',
-        AddBookForm() => 'CONFIRM DETAILS',
-        _ => 'ADD BOOK',
-      };
+    AddBookForm(prefilled: null) => 'MANUAL ENTRY',
+    AddBookForm() => 'CONFIRM DETAILS',
+    _ => 'ADD BOOK',
+  };
 
   Widget _buildSearchPhase(AddBookState state) {
     return Column(
@@ -191,8 +203,11 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
               suffixIcon: state is AddBookSearching
                   ? const Padding(
                       padding: EdgeInsets.all(12),
-                      child:
-                          SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                     )
                   : null,
             ),
@@ -202,8 +217,7 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
           child: switch (state) {
             AddBookIdle() => _buildIdleHint(),
             AddBookSearching() => const SizedBox.shrink(),
-            AddBookResults(:final candidates) =>
-              _buildResultsList(candidates),
+            AddBookResults(:final candidates) => _buildResultsList(candidates),
             AddBookNoResults() => _buildNoResults(),
             AddBookError(:final message) => _buildError(message),
             _ => const SizedBox.shrink(),
@@ -214,20 +228,28 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
   }
 
   Widget _buildIdleHint() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.search_rounded, size: 48, color: AppColors.ink),
+          Icon(
+            Icons.search_rounded,
+            size: 48,
+            color: isDark ? draftInkDark : draftInk,
+          ),
           const SizedBox(height: 12),
-          Text('Type 2+ characters to search',
-              style: Theme.of(context).textTheme.bodyMedium),
+          Text(
+            'Type 2+ characters to search',
+            style: clashDisplayBodyMedium.copyWith(
+              color: isDark ? draftInkSecondaryDark : draftInkSecondary,
+            ),
+          ),
           const SizedBox(height: 20),
           TextButton.icon(
             icon: const Icon(Icons.edit_outlined, size: 18),
             label: const Text('Enter Manually'),
-            onPressed: () =>
-                ref.read(addBookProvider.notifier).goManual(),
+            onPressed: () => ref.read(addBookProvider.notifier).goManual(),
           ),
         ],
       ),
@@ -240,24 +262,25 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
       children: [
         for (var i = 0; i < candidates.length; i++)
           _CandidateTile(
-            candidate: candidates[i],
-            onTap: () =>
-                ref.read(addBookProvider.notifier).selectCandidate(candidates[i]),
-          )
+                candidate: candidates[i],
+                onTap: () => ref
+                    .read(addBookProvider.notifier)
+                    .selectCandidate(candidates[i]),
+              )
               .animate()
               .fadeIn(duration: 400.ms, delay: (i < 10 ? i * 50 : 0).ms)
               .slideX(
-                  begin: 0.05,
-                  duration: 400.ms,
-                  curve: Curves.easeOut,
-                  delay: (i < 10 ? i * 50 : 0).ms),
+                begin: 0.05,
+                duration: 400.ms,
+                curve: Curves.easeOut,
+                delay: (i < 10 ? i * 50 : 0).ms,
+              ),
         const Divider(height: 24),
         Center(
           child: TextButton.icon(
             icon: const Icon(Icons.edit_outlined, size: 18),
             label: const Text('None of these — enter manually'),
-            onPressed: () =>
-                ref.read(addBookProvider.notifier).goManual(),
+            onPressed: () => ref.read(addBookProvider.notifier).goManual(),
           ),
         ),
       ],
@@ -291,9 +314,15 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
           const SizedBox(height: 12),
           const Text('Search unavailable'),
           const SizedBox(height: 4),
-          Text(msg,
-              style: Theme.of(context).textTheme.bodySmall,
-              textAlign: TextAlign.center),
+          Text(
+            msg,
+            style: clashDisplayBody.copyWith(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? draftInkSecondaryDark
+                  : draftInkSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 20),
           FilledButton.tonal(
             onPressed: () => ref.read(addBookProvider.notifier).goManual(),
@@ -313,22 +342,22 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
       initialCategories: const [],
       initialCoverUrl: prefilled?.coverUrl,
       onCoverChanged: (path) => setState(() => _customCoverPath = path),
-      onSave: ({
-        required String title,
-        String? author,
-        String? isbn,
-        String? summary,
-        required List<String> categoryIds,
-      }) =>
-          _save(
-        title: title,
-        author: author,
-        isbn: isbn,
-        summary: summary,
-        categoryIds: categoryIds,
-        coverUrl: prefilled?.coverUrl,
-        status: BookStatus.wishlist,
-      ),
+      onSave:
+          ({
+            required String title,
+            String? author,
+            String? isbn,
+            String? summary,
+            required List<String> categoryIds,
+          }) => _save(
+            title: title,
+            author: author,
+            isbn: isbn,
+            summary: summary,
+            categoryIds: categoryIds,
+            coverUrl: prefilled?.coverUrl,
+            status: BookStatus.wishlist,
+          ),
     );
   }
 }
@@ -342,8 +371,7 @@ class _CandidateTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       leading: candidate.coverUrl != null
           ? ClipRRect(
               borderRadius: BorderRadius.circular(4),
@@ -357,15 +385,27 @@ class _CandidateTile extends StatelessWidget {
               ),
             )
           : const SizedBox(width: 36, height: 54),
-      title: Text(candidate.title,
-          style: Theme.of(context).textTheme.titleSmall,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis),
+      title: Text(
+        candidate.title,
+        style: loraCardTitle.copyWith(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? draftInkDark
+              : draftInk,
+        ),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
       subtitle: candidate.author != null
-          ? Text(candidate.author!,
-              style: Theme.of(context).textTheme.bodySmall,
+          ? Text(
+              candidate.author!,
+              style: loraCardAuthor.copyWith(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? draftInkSecondaryDark
+                    : draftInkSecondary,
+              ),
               maxLines: 1,
-              overflow: TextOverflow.ellipsis)
+              overflow: TextOverflow.ellipsis,
+            )
           : null,
       trailing: const Icon(Icons.chevron_right_rounded, size: 20),
       onTap: onTap,
