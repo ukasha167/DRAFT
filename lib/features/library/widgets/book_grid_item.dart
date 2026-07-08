@@ -7,9 +7,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/colors.dart';
+import '../../../core/theme/typography.dart';
 import '../../../core/widgets/modern_context_menu.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../domain/models/book.dart';
+import '../../../core/utils/color_utils.dart';
 
 class BookGridItem extends ConsumerWidget {
   final Book book;
@@ -45,103 +48,155 @@ class BookGridItem extends ConsumerWidget {
         HapticFeedback.mediumImpact();
         _showContextMenu(context, details.globalPosition, isDark);
       },
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Cover ──────────────────────────────────────────────
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                ClipRRect(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: getWashedAmbientColor(book.dominantColor, isDark) ??
+                      (isDark ? draftSurfaceDark : draftSurface),
+                  border: Border.all(
+                    color: isDark ? draftBorderDark : draftBorder,
+                    width: 1,
+                  ),
                   borderRadius: BorderRadius.circular(8),
-                  child: _Cover(book: book),
                 ),
-                if (book.isFavorite)
-                  Positioned(
-                    bottom: 16, right: -12,
-                    child: Container(
-                      padding: const EdgeInsets.all(5),
-                      decoration: BoxDecoration(
-                        color: (isDark ? AppColors.dkPaper : AppColors.paper),
-                        shape: BoxShape.circle,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.14),
+                        offset: const Offset(2, 4),
+                        blurRadius: 10,
+                        spreadRadius: 0,
                       ),
-                      child: const Icon(Icons.favorite_rounded,
-                          color: AppColors.blood, size: 16),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: _Cover(book: book),
+                  ),
+                ),
+              ),
+              if (book.isFavorite)
+                Positioned(
+                  bottom: -8,
+                  right: -8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: isDark ? draftBackgroundDark : draftBackground,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.favorite_rounded,
+                      color: draftRed,
+                      size: 16,
                     ),
                   ),
-              ],
-            ),
+                ),
+            ],
+          ),
 
-            // ── Title + Author ─────────────────────────────────────
-            const SizedBox(height: 9),
-            Text(
-              book.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: isDark ? AppColors.dkInk : AppColors.ink,
-                height: 1.25,
-              ),
+          const SizedBox(height: 16),
+          Text(
+            book.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: loraCardTitle.copyWith(
+              color: isDark ? draftInkDark : draftInk,
             ),
-            const SizedBox(height: 3),
-            Text(
-              book.author ?? '',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AppColors.muted,
-              ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            book.author ?? '',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: loraCardAuthor.copyWith(
+              color: isDark ? draftInkSecondaryDark : draftInkSecondary,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Future<void> _showContextMenu(BuildContext context, Offset position, bool isDark) async {
-    final glassColor = isDark ? const Color(0x991C1C1E) : const Color(0xB2FFFFFF);
-    final ink = isDark ? AppColors.dkInk : AppColors.ink;
+  Future<void> _showContextMenu(
+    BuildContext context,
+    Offset position,
+    bool isDark,
+  ) async {
+    final glassColor = isDark
+        ? const Color(0x991C1C1E)
+        : const Color(0xB2FFFFFF);
+    final ink = isDark ? draftInkDark : draftInk;
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
     final items = <Widget>[
       _menuItem(context, _Action.edit, Icons.edit_outlined, 'Edit', ink),
       if (!isWishlist) ...[
-        _divider(),
-        _menuItem(context, _Action.favorite, book.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded, book.isFavorite ? 'Remove favourite' : 'Add favourite', ink),
+        _divider(isDark),
+        _menuItem(
+          context,
+          _Action.favorite,
+          book.isFavorite
+              ? Icons.favorite_rounded
+              : Icons.favorite_border_rounded,
+          book.isFavorite ? 'Remove favourite' : 'Add favourite',
+          ink,
+        ),
       ],
-      _divider(),
-      _menuItem(context, _Action.move, isWishlist ? Icons.library_add_check_outlined : Icons.bookmark_border_rounded, isWishlist ? 'Move to Library' : 'Move to Wishlist', ink),
+      _divider(isDark),
+      _menuItem(
+        context,
+        _Action.move,
+        isWishlist
+            ? Icons.library_add_check_outlined
+            : Icons.bookmark_border_rounded,
+        isWishlist ? 'Move to Library' : 'Move to Wishlist',
+        ink,
+      ),
       if (isWishlist && onMoveUp != null) ...[
-        _divider(),
-        _menuItem(context, _Action.up, Icons.arrow_upward_rounded, 'Move up', ink),
+        _divider(isDark),
+        _menuItem(
+          context,
+          _Action.up,
+          Icons.arrow_upward_rounded,
+          'Move up',
+          ink,
+        ),
       ],
       if (isWishlist && onMoveDown != null) ...[
-        _divider(),
-        _menuItem(context, _Action.down, Icons.arrow_downward_rounded, 'Move down', ink),
+        _divider(isDark),
+        _menuItem(
+          context,
+          _Action.down,
+          Icons.arrow_downward_rounded,
+          'Move down',
+          ink,
+        ),
       ],
-      _divider(),
-      _menuItem(context, _Action.delete, Icons.delete_outline_rounded, 'Delete', AppColors.blood),
+      _divider(isDark),
+      _menuItem(
+        context,
+        _Action.delete,
+        Icons.delete_outline_rounded,
+        'Delete',
+        draftRed,
+      ),
     ];
 
     final menuWidth = 220.0;
-    // Estimate menu height: number of actions * 44 + number of dividers * 0.5
+
     final numActions = items.where((w) => w is InkWell).length;
     final numDividers = items.where((w) => w is Container).length;
     final menuHeight = (numActions * 44.0) + (numDividers * 0.5);
-    
+
     var top = position.dy;
     if (top + menuHeight > screenHeight - 24) {
       top = screenHeight - menuHeight - 24;
@@ -157,29 +212,38 @@ class BookGridItem extends ConsumerWidget {
       menuWidth: menuWidth,
       menuHeight: menuHeight,
       glassColor: glassColor,
-      borderColor: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: items,
-      ),
+      borderColor: isDark ? draftBorderDark : draftBorder,
+      child: Column(mainAxisSize: MainAxisSize.min, children: items),
     );
 
     if (result == null) return;
     switch (result) {
-      case _Action.edit:     onEdit?.call();
-      case _Action.favorite: onFavoriteToggle?.call();
-      case _Action.move:     onMove?.call();
-      case _Action.up:       onMoveUp?.call();
-      case _Action.down:     onMoveDown?.call();
+      case _Action.edit:
+        onEdit?.call();
+      case _Action.favorite:
+        onFavoriteToggle?.call();
+      case _Action.move:
+        onMove?.call();
+      case _Action.up:
+        onMoveUp?.call();
+      case _Action.down:
+        onMoveDown?.call();
       case _Action.delete:
         HapticFeedback.heavyImpact();
         onDelete?.call();
     }
   }
 
-  Widget _divider() => Container(height: 0.5, color: AppColors.muted.withOpacity(0.3));
+  Widget _divider(bool isDark) =>
+      Container(height: 0.5, color: isDark ? draftDividerDark : draftDivider);
 
-  Widget _menuItem(BuildContext context, _Action action, IconData icon, String label, Color color) {
+  Widget _menuItem(
+    BuildContext context,
+    _Action action,
+    IconData icon,
+    String label,
+    Color color,
+  ) {
     return InkWell(
       onTap: () => Navigator.pop(context, action),
       child: Padding(
@@ -187,7 +251,10 @@ class BookGridItem extends ConsumerWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w400, color: color, letterSpacing: -0.4)),
+            Text(
+              label,
+              style: clashDisplayBody.copyWith(color: color, letterSpacing: 0),
+            ),
             Icon(icon, size: 20, color: color),
           ],
         ),
@@ -198,10 +265,6 @@ class BookGridItem extends ConsumerWidget {
 
 enum _Action { edit, favorite, move, up, down, delete }
 
-// ---------------------------------------------------------------------------
-// Cover
-// ---------------------------------------------------------------------------
-
 class _Cover extends ConsumerWidget {
   final Book book;
   const _Cover({required this.book});
@@ -209,7 +272,7 @@ class _Cover extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final docsDir = ref.watch(docsDirProvider);
-    final stored  = book.coverThumbPath;
+    final stored = book.coverThumbPath;
 
     if (stored != null) {
       final resolved = p.isAbsolute(stored) ? stored : p.join(docsDir, stored);
@@ -232,16 +295,28 @@ class _Placeholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hue = (book.initials.codeUnits.fold(0, (a, b) => a + b) * 47) % 360;
-    final color = HSLColor.fromAHSL(1, hue.toDouble(), 0.35, 0.40).toColor();
+    Color color;
+    if (book.dominantColor != null && book.dominantColor!.isNotEmpty) {
+      color = hexToColor(book.dominantColor!) ?? Colors.grey;
+    } else {
+      final hue = (book.initials.codeUnits.fold(0, (a, b) => a + b) * 47) % 360;
+      color = HSLColor.fromAHSL(1, hue.toDouble(), 0.35, 0.40).toColor();
+    }
+
     return AspectRatio(
       aspectRatio: 2 / 3,
       child: Container(
         color: color,
         alignment: Alignment.center,
-        child: Text(book.initials,
-            style: const TextStyle(fontSize: 22,
-                fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 1)),
+        child: Text(
+          book.initials,
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: Colors.white,
+            letterSpacing: 1,
+          ),
+        ),
       ),
     );
   }
