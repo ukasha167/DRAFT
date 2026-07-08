@@ -3,10 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../data/repositories/book_lookup_repository.dart';
 
-// ---------------------------------------------------------------------------
-// State model — sealed classes (Dart 3+)
-// ---------------------------------------------------------------------------
-
 sealed class AddBookState {
   const AddBookState();
 }
@@ -35,9 +31,7 @@ class AddBookError extends AddBookState {
   const AddBookError(this.message);
 }
 
-/// Disambiguation chosen or "enter manually" selected — show the form.
 class AddBookForm extends AddBookState {
-  /// null = manual entry (no pre-fill).
   final BookCandidate? prefilled;
   const AddBookForm({this.prefilled});
 }
@@ -50,17 +44,11 @@ class AddBookDone extends AddBookState {
   const AddBookDone();
 }
 
-// ---------------------------------------------------------------------------
-// Notifier
-// ---------------------------------------------------------------------------
-
 class AddBookNotifier extends StateNotifier<AddBookState> {
   final BookLookupRepository _lookup;
 
   AddBookNotifier(this._lookup) : super(const AddBookIdle());
 
-  /// Triggered by the debounced omnibox in AddBookSheet.
-  /// Caller is responsible for debouncing and the 3-char minimum.
   Future<void> search(String query) async {
     if (query.trim().length < 3) {
       state = const AddBookIdle();
@@ -78,12 +66,10 @@ class AddBookNotifier extends StateNotifier<AddBookState> {
     }
   }
 
-  /// User picked a candidate from the disambiguation list.
   void selectCandidate(BookCandidate candidate) {
     state = AddBookForm(prefilled: candidate);
   }
 
-  /// User chose "enter manually" — blank form.
   void goManual() {
     state = const AddBookForm();
   }
@@ -93,11 +79,7 @@ class AddBookNotifier extends StateNotifier<AddBookState> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Provider
-// ---------------------------------------------------------------------------
-
 final addBookProvider =
     StateNotifierProvider.autoDispose<AddBookNotifier, AddBookState>((ref) {
-  return AddBookNotifier(ref.watch(bookLookupRepositoryProvider));
-});
+      return AddBookNotifier(ref.watch(bookLookupRepositoryProvider));
+    });
