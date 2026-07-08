@@ -110,10 +110,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Text(
                     isWishlist ? 'WISHLIST' : 'LIBRARY',
-                    style: Theme.of(context).textTheme.displayLarge,
+                    style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                      letterSpacing: 2.0
+                    ),
                   ),
                   const Spacer(),
-                  // Toggle to the other view
                   IconButton(
                     icon: Icon(isWishlist
                         ? Icons.auto_stories_outlined
@@ -339,10 +340,6 @@ class _Grid extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Category tab
-// ---------------------------------------------------------------------------
-
 class _CategoryTab extends StatelessWidget {
   final String label;
   final bool isActive;
@@ -372,7 +369,7 @@ class _CategoryTab extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                
+
                 fontSize: 13,
                 fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
                 color: isActive ? ink : AppColors.muted,

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/modern_context_menu.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../domain/models/book.dart';
 
@@ -109,40 +111,57 @@ class BookGridItem extends ConsumerWidget {
   }
 
   Future<void> _showContextMenu(BuildContext context, Offset position, bool isDark) async {
-    final overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final glassColor = isDark ? const Color(0x991C1C1E) : const Color(0xB2FFFFFF);
+    final ink = isDark ? AppColors.dkInk : AppColors.ink;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
 
-    final result = await showMenu<_Action>(
-      context: context,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      elevation: 12,
-      color: isDark ? AppColors.dkPaper : AppColors.paper,
-      position: RelativeRect.fromRect(
-        // 1×1 rect at the finger position — Flutter auto-flips if near edges
-        Rect.fromLTWH(position.dx, position.dy, 1, 1),
-        Offset.zero & overlay.size,
-      ),
-      items: [
-        _menuItem(_Action.edit, Icons.edit_outlined, 'Edit'),
-        if (!isWishlist)
-          _menuItem(
-            _Action.favorite,
-            book.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-            book.isFavorite ? 'Remove favourite' : 'Add favourite',
-          ),
-        _menuItem(
-          _Action.move,
-          isWishlist ? Icons.library_add_check_outlined : Icons.bookmark_border_rounded,
-          isWishlist ? 'Move to Library' : 'Move to Wishlist',
-        ),
-        if (isWishlist && onMoveUp != null)
-          _menuItem(_Action.up, Icons.arrow_upward_rounded, 'Move up'),
-        if (isWishlist && onMoveDown != null)
-          _menuItem(_Action.down, Icons.arrow_downward_rounded, 'Move down'),
-        const PopupMenuDivider(height: 1),
-        _menuItem(_Action.delete, Icons.delete_outline_rounded, 'Delete',
-            isDestructive: true),
+    final items = <Widget>[
+      _menuItem(context, _Action.edit, Icons.edit_outlined, 'Edit', ink),
+      if (!isWishlist) ...[
+        _divider(),
+        _menuItem(context, _Action.favorite, book.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded, book.isFavorite ? 'Remove favourite' : 'Add favourite', ink),
       ],
+      _divider(),
+      _menuItem(context, _Action.move, isWishlist ? Icons.library_add_check_outlined : Icons.bookmark_border_rounded, isWishlist ? 'Move to Library' : 'Move to Wishlist', ink),
+      if (isWishlist && onMoveUp != null) ...[
+        _divider(),
+        _menuItem(context, _Action.up, Icons.arrow_upward_rounded, 'Move up', ink),
+      ],
+      if (isWishlist && onMoveDown != null) ...[
+        _divider(),
+        _menuItem(context, _Action.down, Icons.arrow_downward_rounded, 'Move down', ink),
+      ],
+      _divider(),
+      _menuItem(context, _Action.delete, Icons.delete_outline_rounded, 'Delete', AppColors.blood),
+    ];
+
+    final menuWidth = 220.0;
+    // Estimate menu height: number of actions * 44 + number of dividers * 0.5
+    final numActions = items.where((w) => w is InkWell).length;
+    final numDividers = items.where((w) => w is Container).length;
+    final menuHeight = (numActions * 44.0) + (numDividers * 0.5);
+    
+    var top = position.dy;
+    if (top + menuHeight > screenHeight - 24) {
+      top = screenHeight - menuHeight - 24;
+    }
+    var left = position.dx;
+    if (left + menuWidth > screenWidth - 16) {
+      left = screenWidth - menuWidth - 16;
+    }
+
+    final result = await showModernContextMenu<_Action>(
+      context: context,
+      position: position,
+      menuWidth: menuWidth,
+      menuHeight: menuHeight,
+      glassColor: glassColor,
+      borderColor: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: items,
+      ),
     );
 
     if (result == null) return;
@@ -158,25 +177,20 @@ class BookGridItem extends ConsumerWidget {
     }
   }
 
-  PopupMenuItem<_Action> _menuItem(
-    _Action action, IconData icon, String label, {bool isDestructive = false}) {
-    final color = isDestructive ? AppColors.blood : null;
-    return PopupMenuItem<_Action>(
-      value: action,
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Row(
-        children: [
-          Icon(icon, size: 22, color: color),
-          const SizedBox(width: 16),
-          Text(label,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: color,
-                letterSpacing: -0.2,
-              )),
-        ],
+  Widget _divider() => Container(height: 0.5, color: AppColors.muted.withOpacity(0.3));
+
+  Widget _menuItem(BuildContext context, _Action action, IconData icon, String label, Color color) {
+    return InkWell(
+      onTap: () => Navigator.pop(context, action),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w400, color: color, letterSpacing: -0.4)),
+            Icon(icon, size: 20, color: color),
+          ],
+        ),
       ),
     );
   }

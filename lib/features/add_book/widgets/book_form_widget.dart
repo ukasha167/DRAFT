@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/models/category.dart';
@@ -13,6 +16,12 @@ class BookFormWidget extends ConsumerStatefulWidget {
   final String? initialSummary;
   final List<Category> initialCategories;
   final bool isEditing;
+
+  /// Remote cover URL from API search (used as fallback display).
+  final String? initialCoverUrl;
+
+  /// Called when the user picks a new local image. Receives the file path.
+  final ValueChanged<String>? onCoverChanged;
 
   final Future<void> Function({
     required String title,
@@ -30,6 +39,8 @@ class BookFormWidget extends ConsumerStatefulWidget {
     this.initialSummary,
     this.initialCategories = const [],
     this.isEditing = false,
+    this.initialCoverUrl,
+    this.onCoverChanged,
     required this.onSave,
   });
 
@@ -46,6 +57,7 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
 
   late Set<String> _selectedIds;
   bool _isSaving = false;
+  String? _localImagePath; // Set when user picks a custom cover
 
   static const _maxCats = 4;
 
@@ -64,6 +76,20 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
     _titleCtrl.dispose();  _authorCtrl.dispose();
     _isbnCtrl.dispose();   _summaryCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickCover() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1200,
+      maxHeight: 1800,
+      imageQuality: 88,
+    );
+    if (pickedFile != null) {
+      setState(() => _localImagePath = pickedFile.path);
+      widget.onCoverChanged?.call(pickedFile.path);
+    }
   }
 
   Future<void> _save() async {
@@ -102,6 +128,7 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final ink    = isDark ? AppColors.dkInk : AppColors.ink;
     final paper  = isDark ? AppColors.dkPaper : AppColors.paper;
+    final cream  = isDark ? AppColors.dkCream : AppColors.cream;
 
     return Form(
       key: _formKey,
@@ -111,6 +138,60 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
           bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
         ),
         children: [
+
+          // ── Cover picker ────────────────────────────────────────────
+          Center(
+            child: GestureDetector(
+              onTap: _pickCover,
+              child: Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  Container(
+                    width: 88,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      color: cream,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(isDark ? 0.4 : 0.10),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    clipBehavior: Clip.hardEdge,
+                    child: _buildCoverPreview(cream),
+                  ),
+                  // Edit badge
+                  Container(
+                    margin: const EdgeInsets.all(4),
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: ink,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.edit_rounded, size: 12, color: paper),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Center(
+            child: Text(
+              'Tap to change cover',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: ink.withOpacity(0.4),
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // ── Fields ──────────────────────────────────────────────────
           const _Field('TITLE *'),
           TextFormField(
             controller: _titleCtrl,
@@ -181,14 +262,13 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
                           : selected ? ink : AppColors.muted,
                       width: 1.5,
                     ),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     cat.name,
                     style: TextStyle(
-                      
                       fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w800,
                       color: selected
                           ? paper
                           : atMax ? AppColors.muted.withOpacity(0.4)
@@ -208,9 +288,9 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
             child: FilledButton(
               onPressed: _isSaving ? null : _save,
               style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 18),
+                padding: const EdgeInsets.symmetric(vertical: 20),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6)),
+                    borderRadius: BorderRadius.circular(40)),
               ),
               child: _isSaving
                   ? SizedBox(
@@ -219,11 +299,10 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
                           strokeWidth: 2, color: paper),
                     )
                   : Text(
-                      widget.isEditing ? 'SAVE CHANGES' : 'Add To Wishlist',
+                      widget.isEditing ? 'SAVE CHANGES' : 'ADD TO WISHLIST',
                       style: const TextStyle(
-                        
                         fontWeight: FontWeight.w800,
-                        fontSize: 13,
+                        fontSize: 14,
                         letterSpacing: 0.8,
                       ),
                     ),
@@ -231,6 +310,42 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCoverPreview(Color cream) {
+    // 1. User picked a local file
+    if (_localImagePath != null) {
+      return Image.file(
+        File(_localImagePath!),
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+      );
+    }
+
+    // 2. Pre-filled remote URL from API
+    if (widget.initialCoverUrl != null) {
+      return Image.network(
+        widget.initialCoverUrl!,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (_, __, ___) => _coverPlaceholder(cream),
+      );
+    }
+
+    // 3. Placeholder
+    return _coverPlaceholder(cream);
+  }
+
+  Widget _coverPlaceholder(Color cream) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ink = isDark ? AppColors.dkInk : AppColors.ink;
+    return Container(
+      color: cream,
+      alignment: Alignment.center,
+      child: Icon(Icons.menu_book_rounded, size: 32, color: ink.withOpacity(0.25)),
     );
   }
 }
@@ -246,7 +361,7 @@ class _Field extends StatelessWidget {
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 letterSpacing: 1.4,
                 color: AppColors.muted,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
               )),
     );
   }

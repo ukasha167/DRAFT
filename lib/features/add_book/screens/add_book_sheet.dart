@@ -21,6 +21,7 @@ class AddBookSheet extends ConsumerStatefulWidget {
 class _AddBookSheetState extends ConsumerState<AddBookSheet> {
   final _searchCtrl = TextEditingController();
   final _debouncer = Debouncer(delay: const Duration(milliseconds: 450));
+  String? _customCoverPath; // Set when user picks a cover from gallery
 
   @override
   void dispose() {
@@ -77,6 +78,7 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
           isbn: isbn,
           summary: summary,
           coverUrl: coverUrl,
+          localCoverPath: _customCoverPath,
           categoryIds: categoryIds,
         );
 
@@ -87,65 +89,81 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
   Widget build(BuildContext context) {
     final state = ref.watch(addBookProvider);
 
+    // Reset the custom cover whenever the state machine leaves the form phase
+    // (user pressed Back or selected a different book). Without this, the stale
+    // local path from a previous selection would be submitted with the new book.
+    ref.listen<AddBookState>(addBookProvider, (prev, next) {
+      if (next is! AddBookForm && _customCoverPath != null) {
+        setState(() => _customCoverPath = null);
+      }
+    });
+
     return DraggableScrollableSheet(
-      initialChildSize: 0.92,
+      initialChildSize: 0.95,
       minChildSize: 0.5,
       maxChildSize: 0.97,
       builder: (context, scrollController) {
-        return Material(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          clipBehavior: Clip.hardEdge,
-          child: Column(
-            children: [
-              // Handle
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-
-              // Header + close
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 8, 0),
-                child: Row(
-                  children: [
-                    Text(_headerTitle(state),
-                        style: Theme.of(context).textTheme.titleLarge),
-                    const Spacer(),
-                    if (state is! AddBookIdle && state is! AddBookSearching)
-                      TextButton(
-                        onPressed: () =>
-                            ref.read(addBookProvider.notifier).reset(),
-                        child: const Text('Back'),
+        // Wrap in its own ScaffoldMessenger so that SnackBars shown from
+        // BookFormWidget appear inside the sheet overlay, not behind it.
+        return ScaffoldMessenger(
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: Material(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              clipBehavior: Clip.hardEdge,
+              child: Column(
+                children: [
+                  // Handle
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
                     ),
-                  ],
-                ),
-              ),
+                  ),
 
-              Expanded(
-                child: switch (state) {
-                  AddBookIdle() || AddBookSearching() || AddBookResults() ||
-                  AddBookNoResults() || AddBookError() =>
-                    _buildSearchPhase(state),
-                  AddBookForm(:final prefilled) =>
-                    _buildFormPhase(prefilled),
-                  AddBookSaving() => const Center(
-                      child: CircularProgressIndicator(strokeWidth: 2)),
-                  AddBookDone() => const SizedBox.shrink(),
-                },
+                  // Header + close
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 8, 0),
+                    child: Row(
+                      children: [
+                        Text(_headerTitle(state),
+                            style: Theme.of(context).textTheme.titleLarge),
+                        const Spacer(),
+                        if (state is! AddBookIdle && state is! AddBookSearching)
+                          TextButton(
+                            onPressed: () =>
+                                ref.read(addBookProvider.notifier).reset(),
+                            child: const Text('Back'),
+                          ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  Expanded(
+                    child: switch (state) {
+                      AddBookIdle() || AddBookSearching() || AddBookResults() ||
+                      AddBookNoResults() || AddBookError() =>
+                        _buildSearchPhase(state),
+                      AddBookForm(:final prefilled) =>
+                        _buildFormPhase(prefilled),
+                      AddBookSaving() => const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2)),
+                      AddBookDone() => const SizedBox.shrink(),
+                    },
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         );
       },
@@ -293,6 +311,8 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
       initialIsbn: prefilled?.isbn,
       initialSummary: prefilled?.description,
       initialCategories: const [],
+      initialCoverUrl: prefilled?.coverUrl,
+      onCoverChanged: (path) => setState(() => _customCoverPath = path),
       onSave: ({
         required String title,
         String? author,

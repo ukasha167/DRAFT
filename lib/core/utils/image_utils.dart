@@ -115,3 +115,15 @@ Future<void> deleteCoverFiles(String? thumbPath, String? fullPath) async {
     if (await file.exists()) await file.delete();
   }
 }
+
+/// Read a local image file picked by the user, resize it, and store both
+/// sizes in the app's documents directory, returning relative paths.
+Future<CoverPaths?> processLocalFileCover(String filePath) async {
+  try {
+    final bytes = await File(filePath).readAsBytes();
+    return processAndSaveCover(bytes);
+  } catch (_) {
+    return null;
+  }
+}
+

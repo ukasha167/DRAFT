@@ -39,6 +39,7 @@ abstract final class AppTheme {
   static final light = ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
+    fontFamily: 'ClashDisplay',
     
     colorScheme: const ColorScheme.light(
       primary:    AppColors.ink,
@@ -68,7 +69,7 @@ abstract final class AppTheme {
         backgroundColor: WidgetStateProperty.all(AppColors.ink),
         foregroundColor: WidgetStateProperty.all(AppColors.paper),
         textStyle: WidgetStateProperty.all(
-          const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
         ),
         shape: WidgetStateProperty.all(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
@@ -82,10 +83,10 @@ abstract final class AppTheme {
       style: ButtonStyle(
         foregroundColor: WidgetStateProperty.all(AppColors.ink),
         side: WidgetStateProperty.all(
-          const BorderSide(color: AppColors.ink, width: 1.5),
+          const BorderSide(color: AppColors.ink, width: 2),
         ),
         textStyle: WidgetStateProperty.all(
-          const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
         ),
         shape: WidgetStateProperty.all(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
@@ -120,6 +121,7 @@ abstract final class AppTheme {
   static final dark = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
+    fontFamily: 'ClashDisplay',
     
     colorScheme: const ColorScheme.dark(
       primary:    AppColors.dkInk,
@@ -149,7 +151,7 @@ abstract final class AppTheme {
         backgroundColor: WidgetStateProperty.all(AppColors.dkInk),
         foregroundColor: WidgetStateProperty.all(AppColors.dkPaper),
         textStyle: WidgetStateProperty.all(
-          const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
         ),
         shape: WidgetStateProperty.all(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
@@ -163,10 +165,10 @@ abstract final class AppTheme {
       style: ButtonStyle(
         foregroundColor: WidgetStateProperty.all(AppColors.dkInk),
         side: WidgetStateProperty.all(
-          const BorderSide(color: AppColors.dkInk, width: 1.5),
+          const BorderSide(color: AppColors.dkInk, width: 2),
         ),
         textStyle: WidgetStateProperty.all(
-          const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
         ),
         shape: WidgetStateProperty.all(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
@@ -217,20 +219,20 @@ abstract final class AppTheme {
       ),
       // Headlines
       headlineLarge: TextStyle(
-        fontSize: 22, fontWeight: FontWeight.w700,
+        fontSize: 22, fontWeight: FontWeight.w800,
         color: base,
       ),
       headlineMedium: TextStyle(
-        fontSize: 18, fontWeight: FontWeight.w700,
+        fontSize: 18, fontWeight: FontWeight.w800,
         color: base,
       ),
       headlineSmall: TextStyle(
-        fontSize: 16, fontWeight: FontWeight.w700,
+        fontSize: 16, fontWeight: FontWeight.w800,
         color: base,
       ),
       // Titles
       titleLarge: TextStyle(
-        fontSize: 15, fontWeight: FontWeight.w700,
+        fontSize: 16, fontWeight: FontWeight.w800,
         color: base,
       ),
       titleMedium: TextStyle(
@@ -277,7 +279,7 @@ abstract final class AppTheme {
     required Color border,
   }) {
     final enabledBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(50),
+      borderRadius: BorderRadius.circular(10),
       borderSide: BorderSide(color: border.withOpacity(0.15), width: 1),
     );
     return InputDecorationTheme(
@@ -291,7 +293,7 @@ abstract final class AppTheme {
       border: enabledBorder,
       enabledBorder: enabledBorder,
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(50),
+        borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide(color: border, width: 1.5),
       ),
     );

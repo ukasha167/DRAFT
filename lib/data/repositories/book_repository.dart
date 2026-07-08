@@ -27,6 +27,7 @@ abstract class BookRepository {
 
   /// Insert a new book. [coverUrl] is downloaded, resized, and stored locally
   /// before this future resolves; the remote URL is discarded afterward.
+  /// Pass [localCoverPath] (from image_picker) to use a user-supplied file instead.
   Future<void> addBook({
     required String title,
     required BookStatus status,
@@ -34,6 +35,7 @@ abstract class BookRepository {
     String? isbn,
     String? summary,
     String? coverUrl,
+    String? localCoverPath,
     required List<String> categoryIds,
   });
 
@@ -47,6 +49,7 @@ abstract class BookRepository {
     String? author,
     String? isbn,
     String? summary,
+    String? localCoverPath,
     required List<String> categoryIds,
   });
 

@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/modern_context_menu.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../domain/models/book.dart';
 import '../../add_book/widgets/book_form_widget.dart';
@@ -116,11 +117,10 @@ class _Detail extends ConsumerWidget {
                         Text(
                           book.title.toUpperCase(),
                           style: TextStyle(
-
                             fontSize: 32,
                             fontWeight: FontWeight.w900,
                             color: ink,
-                            letterSpacing: -0.5,
+                            letterSpacing: 1.5,
                             height: 1.15,
                           ),
                         ),
@@ -138,9 +138,13 @@ class _Detail extends ConsumerWidget {
                           Text.rich(
                             TextSpan(
                               children: [
-                                const TextSpan(
-                                  text: 'Categories: ',
-                                  style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.ink),
+                                TextSpan(
+                                  text: 'CATEGORIES: ',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    color: ink,
+                                    letterSpacing: 1.2,
+                                  ),
                                 ),
                                 TextSpan(text: book.categories.map((c) => c.name).join(', ')),
                               ],
@@ -153,16 +157,16 @@ class _Detail extends ConsumerWidget {
                         ],
 
                         if (book.summary?.isNotEmpty == true) ...[
-                          const SizedBox(height: 8),
-                          const Text(
+                          const SizedBox(height: 12),
+                          Text(
                             'SUMMARY',
                             style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700, color: AppColors.muted,
-                              letterSpacing: 1.5,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: ink,
+                              letterSpacing: 1.8,
                             ),
                           ),
-                          const SizedBox(height: 4),
                           MarkdownBody(
                             data: book.summary!
                                 .replaceAll('*', '')
@@ -186,13 +190,43 @@ class _Detail extends ConsumerWidget {
                           ),
                         ],
 
+                        if (book.isbn?.isNotEmpty == true) ...[
+                          const SizedBox(height: 16),
+                          Text.rich(
+                             TextSpan(
+                              children: [
+                                 TextSpan(
+                                  text: 'ISBN: ',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                    color: ink,
+                                    letterSpacing: 1.8,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: book.isbn!,
+                                  style:  TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: ink,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ]
+
+                            )
+                          ),
+                        ],
+
                         if (book.isOwned) ...[
-                          const SizedBox(height: 24),
-                          const Text('READING STATUS',
+                          const SizedBox(height: 12),
+                          Text('READING STATUS',
                               style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700, color: AppColors.muted,
-                                letterSpacing: 1.5,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: ink,
+                                letterSpacing: 1.2,
                               )),
                           const SizedBox(height: 10),
                           Row(
@@ -210,7 +244,9 @@ class _Detail extends ConsumerWidget {
                                     decoration: BoxDecoration(
                                       color: active ? ink : Colors.transparent,
                                       border: Border.all(
-                                          color: active ? ink : AppColors.muted.withOpacity(0.5),
+                                          color: active
+                                              ? ink
+                                              : AppColors.muted.withOpacity(0.5),
                                           width: 1.5),
                                       borderRadius: BorderRadius.circular(50),
                                     ),
@@ -275,48 +311,68 @@ class _MenuButton extends ConsumerWidget {
   final Color ink;
   const _MenuButton({required this.book, required this.paper, required this.ink});
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void _showModernMenu(BuildContext context, WidgetRef ref) {
     final repo = ref.read(bookRepositoryProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return PopupMenuButton<String>(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      elevation: 12,
-      color: isDark ? AppColors.dkPaper : AppColors.paper,
-      onSelected: (value) {
-        switch (value) {
-          case 'edit': _openEdit(context, ref);
-          case 'delete':
-            repo.softDelete(book.id);
+
+    final glassColor = isDark
+        ? const Color(0x991C1C1E)
+        : const Color(0xB2FFFFFF);
+
+    final renderBox = context.findRenderObject() as RenderBox;
+    final offset = renderBox.localToGlobal(Offset.zero);
+    final buttonSize = renderBox.size;
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final rightPadding = screenWidth - (offset.dx + buttonSize.width);
+    final topPadding = offset.dy + buttonSize.height + 8;
+
+    showModernContextMenu(
+      context: context,
+      // Pass the top right corner of the menu placement area
+      position: Offset(screenWidth - rightPadding, topPadding),
+      menuWidth: 180,
+      menuHeight: 100, // Roughly 2 items + divider
+      glassColor: glassColor,
+      borderColor: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+      originAlignment: Alignment.topRight,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildMenuItem('Edit', Icons.edit_outlined, ink, () {
             Navigator.pop(context);
-        }
-      },
-      itemBuilder: (_) => [
-        PopupMenuItem(
-          value: 'edit',
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Row(children: [
-            const Icon(Icons.edit_outlined, size: 22),
-            const SizedBox(width: 16),
-            Text('Edit', style: TextStyle(fontSize: 16,
-                fontWeight: FontWeight.w700, color: ink, letterSpacing: -0.2)),
-          ]),
+            _openEdit(context, ref);
+          }),
+          Container(height: 0.5, color: AppColors.muted.withOpacity(0.3)),
+          _buildMenuItem('Delete', Icons.delete_outline_rounded, AppColors.blood, () {
+            Navigator.pop(context);
+            repo.softDelete(book.id);
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuItem(String title, IconData icon, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w400, color: color, letterSpacing: -0.4)),
+            Icon(icon, size: 20, color: color),
+          ],
         ),
-        const PopupMenuDivider(height: 1),
-        PopupMenuItem(
-          value: 'delete',
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Row(children: [
-            const Icon(Icons.delete_outline_rounded, size: 22, color: AppColors.blood),
-            const SizedBox(width: 16),
-            const Text('Delete', style: TextStyle(fontSize: 16,
-                fontWeight: FontWeight.w700, color: AppColors.blood, letterSpacing: -0.2)),
-          ]),
-        ),
-      ],
-      // Style the trigger button to match the nav circle buttons
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return GestureDetector(
+      onTap: () => _showModernMenu(context, ref),
       child: Container(
         margin: const EdgeInsets.all(6),
         padding: const EdgeInsets.all(8),
@@ -340,52 +396,74 @@ class _MenuButton extends ConsumerWidget {
   }
 }
 
-class _EditSheet extends ConsumerWidget {
+class _EditSheet extends ConsumerStatefulWidget {
   final Book book;
   const _EditSheet({required this.book});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_EditSheet> createState() => _EditSheetState();
+}
+
+class _EditSheetState extends ConsumerState<_EditSheet> {
+  String? _localCoverPath;
+
+  @override
+  Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.dkPaper : AppColors.paper,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Container(width: 36, height: 3,
-              decoration: BoxDecoration(color: AppColors.muted.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(2))),
+    final sheetColor = isDark ? AppColors.dkPaper : AppColors.paper;
+
+    // ScaffoldMessenger wrapper ensures SnackBars from BookFormWidget
+    // appear inside the sheet overlay, not behind it.
+    return ScaffoldMessenger(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Container(
+          decoration: BoxDecoration(
+            color: sheetColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 8, 0),
-            child: Row(children: [
-              Text('Edit book',
-                  style: Theme.of(context).textTheme.headlineMedium),
-              const Spacer(),
-              IconButton(icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context)),
-            ]),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Container(width: 36, height: 3,
+                  decoration: BoxDecoration(color: AppColors.muted.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(2))),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 8, 0),
+                child: Row(children: [
+                  Text('Edit book',
+                      style: Theme.of(context).textTheme.headlineMedium),
+                  const Spacer(),
+                  IconButton(icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context)),
+                ]),
+              ),
+              Flexible(
+                child: BookFormWidget(
+                  initialTitle: widget.book.title,
+                  initialAuthor: widget.book.author,
+                  initialIsbn: widget.book.isbn,
+                  initialSummary: widget.book.summary,
+                  initialCategories: widget.book.categories,
+                  isEditing: true,
+                  onCoverChanged: (path) => setState(() => _localCoverPath = path),
+                  onSave: ({required title, author, isbn, summary,
+                      required categoryIds}) async {
+                    await ref.read(bookRepositoryProvider).updateBook(
+                        id: widget.book.id, title: title, author: author,
+                        isbn: isbn, summary: summary,
+                        localCoverPath: _localCoverPath,
+                        categoryIds: categoryIds);
+                    if (context.mounted) Navigator.pop(context);
+                  },
+                ),
+              ),
+            ],
           ),
-          Flexible(
-            child: BookFormWidget(
-              initialTitle: book.title, initialAuthor: book.author,
-              initialIsbn: book.isbn, initialSummary: book.summary,
-              initialCategories: book.categories, isEditing: true,
-              onSave: ({required title, author, isbn, summary,
-                  required categoryIds}) async {
-                await ref.read(bookRepositoryProvider).updateBook(
-                    id: book.id, title: title, author: author,
-                    isbn: isbn, summary: summary, categoryIds: categoryIds);
-                if (context.mounted) Navigator.pop(context);
-              },
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

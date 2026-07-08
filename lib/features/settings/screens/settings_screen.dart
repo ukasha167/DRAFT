@@ -27,7 +27,7 @@ class SettingsScreen extends ConsumerWidget {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_rounded),
+                    icon: const Icon(Icons.arrow_back_rounded, weight: 900, size: 28),
                     onPressed: () => Navigator.pop(context),
                     tooltip: 'Back',
                   ),
@@ -61,7 +61,7 @@ class SettingsScreen extends ConsumerWidget {
                                       ?.copyWith(color: ink),
                                 ),
                                 const SizedBox(width: 8),
-                                Icon(Icons.edit_outlined,
+                                const Icon(Icons.edit_outlined,
                                     size: 16, color: AppColors.muted),
                               ],
                             ),
@@ -97,6 +97,7 @@ class SettingsScreen extends ConsumerWidget {
                         ...[ThemeMode.system, ThemeMode.light, ThemeMode.dark]
                             .map((m) => RadioListTile<ThemeMode>(
                                   dense: true,
+                                  visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
                                   contentPadding:
                                       const EdgeInsets.symmetric(horizontal: 20),
                                   title: Text(
@@ -113,6 +114,7 @@ class SettingsScreen extends ConsumerWidget {
                                   onChanged: (v) =>
                                       ref.read(themeModeProvider.notifier).setMode(v!),
                                 )),
+                        const SizedBox(height: 14),
                       ],
                     ),
                   ),

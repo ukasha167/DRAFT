@@ -88,14 +88,17 @@ class LocalBookRepository implements BookRepository {
     String? isbn,
     String? summary,
     String? coverUrl,
+    String? localCoverPath,
     required List<String> categoryIds,
   }) async {
     final id = newId();
     final now = nowMs();
 
-    // Download + resize cover off the main thread before the DB write.
+    // Local file takes priority; fall back to remote URL download.
     CoverPaths? coverPaths;
-    if (coverUrl != null && coverUrl.isNotEmpty) {
+    if (localCoverPath != null && localCoverPath.isNotEmpty) {
+      coverPaths = await processLocalFileCover(localCoverPath);
+    } else if (coverUrl != null && coverUrl.isNotEmpty) {
       coverPaths = await downloadAndProcessCover(coverUrl);
     }
 
@@ -134,22 +137,37 @@ class LocalBookRepository implements BookRepository {
     String? author,
     String? isbn,
     String? summary,
+    String? localCoverPath,
     required List<String> categoryIds,
   }) async {
-    await _db.transaction(() async {
-      await _booksDao.updateBook(
-        BooksCompanion(
-          title: Value(title),
-          author: Value(author),
-          isbn: Value(isbn),
-          summary: Value(summary),
-          updatedAt: Value(nowMs()),
-        ),
-        id,
+    CoverPaths? coverPaths;
+    if (localCoverPath != null && localCoverPath.isNotEmpty) {
+      coverPaths = await processLocalFileCover(localCoverPath);
+    }
+
+    // Build the base companion; Drift companions don't support if-spread
+    // inside the constructor, so we use copyWith for the optional cover fields.
+    var companion = BooksCompanion(
+      title: Value(title),
+      author: Value(author),
+      isbn: Value(isbn),
+      summary: Value(summary),
+      updatedAt: Value(nowMs()),
+    );
+
+    if (coverPaths != null) {
+      companion = companion.copyWith(
+        coverThumbPath: Value(coverPaths.thumbPath),
+        coverFullPath: Value(coverPaths.fullPath),
       );
+    }
+
+    await _db.transaction(() async {
+      await _booksDao.updateBook(companion, id);
       await _categoriesDao.setBookCategories(id, categoryIds);
     });
   }
+
 
   @override
   Future<void> toggleFavorite(String id, bool value) {
