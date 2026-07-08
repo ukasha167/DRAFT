@@ -7,26 +7,12 @@ import 'package:path/path.dart' as p;
 
 import '../../data/providers/repository_providers.dart';
 
-/// Renders a book cover at the correct 2:3 aspect ratio.
-///
-/// Paths stored in the DB are RELATIVE to the documents directory
-/// (e.g. "covers/abc_thumb.jpg"). This widget reconstructs the absolute
-/// path at display time using [docsDirProvider], which is stable across
-/// the widget lifecycle even when iOS reassigns container UUIDs.
-///
-/// Old absolute-path records (written before this fix) are detected via
-/// [p.isAbsolute] and used as-is — they will fail existsSync and fall
-/// through to the placeholder, degrading gracefully without crashing.
-///
-/// Uses cacheWidth/cacheHeight on Image.file so Flutter decodes at display
-/// size only — never full-resolution for a list thumbnail.
 class BookCover extends ConsumerWidget {
-  final String? thumbPath; // relative path, or legacy absolute
+  final String? thumbPath;
   final String? fullPath;
   final String initials;
   final double width;
 
-  /// True only on the detail screen — loads fullPath at full display size.
   final bool useFullRes;
 
   const BookCover({
@@ -40,19 +26,16 @@ class BookCover extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final height = width * 1.5; // 2:3 ratio
+    final height = width * 1.5;
     final storedPath = useFullRes ? fullPath : thumbPath;
     final dpr = MediaQuery.devicePixelRatioOf(context);
 
     if (storedPath != null) {
       final docsDir = ref.watch(docsDirProvider);
 
-      // Relative paths (new format) need the docs prefix.
-      // Absolute paths (old format written before the fix) used as-is;
-      // they will likely fail existsSync after a clean build, which is
-      // fine — the widget falls through to the placeholder without crashing.
-      final resolved =
-          p.isAbsolute(storedPath) ? storedPath : p.join(docsDir, storedPath);
+      final resolved = p.isAbsolute(storedPath)
+          ? storedPath
+          : p.join(docsDir, storedPath);
 
       if (File(resolved).existsSync()) {
         return ClipRRect(
@@ -64,11 +47,8 @@ class BookCover extends ConsumerWidget {
             fit: BoxFit.cover,
             cacheWidth: (width * dpr).ceil(),
             cacheHeight: (height * dpr).ceil(),
-            errorBuilder: (_, __, ___) => _Placeholder(
-              width: width,
-              height: height,
-              initials: initials,
-            ),
+            errorBuilder: (_, __, ___) =>
+                _Placeholder(width: width, height: height, initials: initials),
           ),
         );
       }
@@ -106,7 +86,6 @@ class _Placeholder extends StatelessWidget {
       child: Text(
         initials,
         style: TextStyle(
-          
           fontSize: fontSize,
           fontWeight: FontWeight.w700,
           color: Colors.white,
