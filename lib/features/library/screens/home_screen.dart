@@ -4,6 +4,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/colors.dart';
+import '../../../core/theme/typography.dart';
 import '../../../core/utils/debouncer.dart';
 import '../../../data/providers/repository_providers.dart';
 import '../../../domain/models/book.dart';
@@ -23,12 +25,12 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _searchCtrl = TextEditingController();
-  final _debouncer  = Debouncer(delay: const Duration(milliseconds: 150));
+  final _debouncer = Debouncer(delay: const Duration(milliseconds: 150));
 
   @override
   void initState() {
     super.initState();
-    // Post-first-frame sweep: purge soft-deleted rows + orphaned cover files.
+
     WidgetsBinding.instance.addPostFrameCallback((_) => _sweep());
   }
 
@@ -48,30 +50,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   void _switchTab(BookStatus to) {
     ref.read(currentTabProvider.notifier).state = to;
-    ref.read(activeCategoryProvider.notifier).state = null; // reset filter
+    ref.read(activeCategoryProvider.notifier).state = null;
   }
 
   void _softDelete(Book book) {
     ref.read(bookRepositoryProvider).softDelete(book.id);
-    ref.read(lastDeletedProvider.notifier).state =
-        (id: book.id, title: book.title);
+    ref.read(lastDeletedProvider.notifier).state = (
+      id: book.id,
+      title: book.title,
+    );
 
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
-      ..showSnackBar(SnackBar(
-        content: Text('"${book.title}" deleted'),
-        duration: const Duration(seconds: 4),
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () {
-            final d = ref.read(lastDeletedProvider);
-            if (d != null) {
-              ref.read(bookRepositoryProvider).restore(d.id);
-              ref.read(lastDeletedProvider.notifier).state = null;
-            }
-          },
+      ..showSnackBar(
+        SnackBar(
+          content: Text('"${book.title}" deleted'),
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () {
+              final d = ref.read(lastDeletedProvider);
+              if (d != null) {
+                ref.read(bookRepositoryProvider).restore(d.id);
+                ref.read(lastDeletedProvider.notifier).state = null;
+              }
+            },
+          ),
         ),
-      ));
+      );
   }
 
   Future<void> _openAdd() async {
@@ -85,16 +91,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _openDetail(Book book) {
-    Navigator.push(context,
-        MaterialPageRoute(builder: (_) => BookDetailScreen(bookId: book.id)));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => BookDetailScreen(bookId: book.id)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final tab       = ref.watch(currentTabProvider);
-    final catId     = ref.watch(activeCategoryProvider);
+    final tab = ref.watch(currentTabProvider);
+    final catId = ref.watch(activeCategoryProvider);
     final booksAsync = ref.watch(activeBooksProvider);
-    final isDark    = Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isWishlist = tab == BookStatus.wishlist;
 
     return Scaffold(
@@ -102,7 +110,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Header ───────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 20, 12, 0),
               child: Row(
@@ -110,24 +117,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Text(
                     isWishlist ? 'WISHLIST' : 'LIBRARY',
-                    style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                      letterSpacing: 2.0
+                    style: clashDisplayHeading.copyWith(
+                      color: isDark ? draftInkDark : draftInk,
                     ),
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: Icon(isWishlist
-                        ? Icons.auto_stories_outlined
-                        : Icons.bookmark_border_rounded),
+                    icon: Icon(
+                      isWishlist
+                          ? Icons.auto_stories_outlined
+                          : Icons.bookmark_border_rounded,
+                    ),
                     tooltip: isWishlist ? 'Library' : 'Wishlist',
-                    onPressed: () =>
-                        _switchTab(isWishlist ? BookStatus.owned : BookStatus.wishlist),
+                    onPressed: () => _switchTab(
+                      isWishlist ? BookStatus.owned : BookStatus.wishlist,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.settings_outlined),
                     tooltip: 'Settings',
-                    onPressed: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    ),
                   ),
                 ],
               ),
@@ -135,66 +147,74 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
             const SizedBox(height: 14),
 
-            // ── Search ───────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TextField(
-                controller: _searchCtrl,
-                onChanged: (v) => _debouncer.run(
-                    () => ref.read(searchTextProvider.notifier).state = v),
-                textInputAction: TextInputAction.search,
-                decoration: InputDecoration(
-                  hintText: '#Literature',
-                  suffixIcon: _searchCtrl.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.close_rounded, size: 18),
-                          onPressed: () {
-                            _searchCtrl.clear();
-                            ref.read(searchTextProvider.notifier).state = '';
-                          },
-                        )
-                      : null,
-                ),
-              ),
-            ).animate().fadeIn(duration: 400.ms, delay: 100.ms).slideX(begin: 0.05, duration: 400.ms, curve: Curves.easeOut),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: TextField(
+                    controller: _searchCtrl,
+                    onChanged: (v) => _debouncer.run(
+                      () => ref.read(searchTextProvider.notifier).state = v,
+                    ),
+                    textInputAction: TextInputAction.search,
+                    decoration: InputDecoration(
+                      hintText: '#Literature',
+                      suffixIcon: _searchCtrl.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.close_rounded, size: 18),
+                              onPressed: () {
+                                _searchCtrl.clear();
+                                ref.read(searchTextProvider.notifier).state =
+                                    '';
+                              },
+                            )
+                          : null,
+                    ),
+                  ),
+                )
+                .animate()
+                .fadeIn(duration: 400.ms, delay: 100.ms)
+                .slideX(begin: 0.05, duration: 400.ms, curve: Curves.easeOut),
 
             const SizedBox(height: 12),
 
-            // ── Category tabs ─────────────────────────────────────────
             SizedBox(
-              height: 34,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _CategoryTab(
-                    label: 'All',
-                    isActive: catId == null,
-                    onTap: () =>
-                        ref.read(activeCategoryProvider.notifier).state = null,
-                    isDark: isDark,
-                  ),
-                  ...kCategories.map((cat) => _CategoryTab(
-                        label: cat.name,
-                        isActive: catId == cat.id,
-                        onTap: () => ref
-                            .read(activeCategoryProvider.notifier)
-                            .state = cat.id,
+                  height: 34,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    children: [
+                      _CategoryTab(
+                        label: 'All',
+                        isActive: catId == null,
+                        onTap: () =>
+                            ref.read(activeCategoryProvider.notifier).state =
+                                null,
                         isDark: isDark,
-                      )),
-                ],
-              ),
-            ).animate().fadeIn(duration: 400.ms, delay: 150.ms).slideX(begin: 0.05, duration: 400.ms, curve: Curves.easeOut),
+                      ),
+                      ...kCategories.map(
+                        (cat) => _CategoryTab(
+                          label: cat.name,
+                          isActive: catId == cat.id,
+                          onTap: () =>
+                              ref.read(activeCategoryProvider.notifier).state =
+                                  cat.id,
+                          isDark: isDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+                .animate()
+                .fadeIn(duration: 400.ms, delay: 150.ms)
+                .slideX(begin: 0.05, duration: 400.ms, curve: Curves.easeOut),
 
             const SizedBox(height: 8),
 
-            // ── Book grid ────────────────────────────────────────────
             Expanded(
               child: booksAsync.when(
                 loading: () => const Center(
-                    child: CircularProgressIndicator(strokeWidth: 2)),
-                error: (e, _) =>
-                    Center(child: Text('Error: $e')),
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                error: (e, _) => Center(child: Text('Error: $e')),
                 data: (books) => books.isEmpty
                     ? _emptyState(catId, isWishlist)
                     : _Grid(
@@ -207,8 +227,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             .read(bookRepositoryProvider)
                             .toggleFavorite(book.id, !book.isFavorite),
                         onMove: (book) => isWishlist
-                            ? ref.read(bookRepositoryProvider).moveToOwned(book.id)
-                            : ref.read(bookRepositoryProvider).moveToWishlist(book.id),
+                            ? ref
+                                  .read(bookRepositoryProvider)
+                                  .moveToOwned(book.id)
+                            : ref
+                                  .read(bookRepositoryProvider)
+                                  .moveToWishlist(book.id),
                         onReorder: (book, prev, next) => ref
                             .read(bookRepositoryProvider)
                             .reorder(book.id, prev, next),
@@ -220,18 +244,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       floatingActionButton: isWishlist
           ? FloatingActionButton(
+              heroTag: null,
               onPressed: _openAdd,
               tooltip: 'Add book',
               shape: const CircleBorder(),
-              backgroundColor: isDark ? AppColors.dkInk : AppColors.ink,
-              foregroundColor: isDark ? AppColors.dkPaper : AppColors.paper,
+              backgroundColor: isDark ? draftInkDark : draftInk,
+              foregroundColor: isDark ? draftBackgroundDark : draftBackground,
               child: const Icon(Icons.add_rounded),
             )
-                .animate()
-                .scale(
-                    delay: 200.ms,
-                    duration: 400.ms,
-                    curve: Curves.easeOutBack)
           : null,
     );
   }
@@ -257,21 +277,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         icon: Icons.bookmark_border_rounded,
         title: 'Wishlist is empty',
         subtitle: 'Books you want to read go here',
-        action: FilledButton(onPressed: _openAdd, child: const Text('Add a book')),
+        action: FilledButton(
+          onPressed: _openAdd,
+          child: const Text('Add a book'),
+        ),
       );
     }
     return EmptyState(
       icon: Icons.auto_stories_rounded,
       title: 'Your library is empty',
       subtitle: 'Start by adding your first book',
-      action: FilledButton(onPressed: _openAdd, child: const Text('Add your first book')),
+      action: FilledButton(
+        onPressed: _openAdd,
+        child: const Text('Add your first book'),
+      ),
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Grid — LayoutBuilder gives exact column width so covers are pixel-precise.
-// ---------------------------------------------------------------------------
 
 class _Grid extends StatelessWidget {
   final List<Book> books;
@@ -305,36 +327,37 @@ class _Grid extends StatelessWidget {
       itemBuilder: (_, i) {
         final book = books[i];
         return BookGridItem(
-          key: ValueKey('${book.id}_$i'),
-          book: book,
-          isWishlist: isWishlist,
-          onTap: () => onTap(book),
-          onEdit: () => onEdit(book),
-          onDelete: () => onDelete(book),
-          onFavoriteToggle: isWishlist ? null : () => onFavorite(book),
-          onMove: () => onMove(book),
-          onMoveUp: isWishlist && i > 0
-              ? () => onReorder(
-                    book,
-                    i > 1 ? books[i - 2].sortOrder : null,
-                    books[i - 1].sortOrder,
-                  )
-              : null,
-          onMoveDown: isWishlist && i < books.length - 1
-              ? () => onReorder(
-                    book,
-                    books[i + 1].sortOrder,
-                    i < books.length - 2 ? books[i + 2].sortOrder : null,
-                  )
-              : null,
-        )
+              key: ValueKey('${book.id}_$i'),
+              book: book,
+              isWishlist: isWishlist,
+              onTap: () => onTap(book),
+              onEdit: () => onEdit(book),
+              onDelete: () => onDelete(book),
+              onFavoriteToggle: isWishlist ? null : () => onFavorite(book),
+              onMove: () => onMove(book),
+              onMoveUp: isWishlist && i > 0
+                  ? () => onReorder(
+                      book,
+                      i > 1 ? books[i - 2].sortOrder : null,
+                      books[i - 1].sortOrder,
+                    )
+                  : null,
+              onMoveDown: isWishlist && i < books.length - 1
+                  ? () => onReorder(
+                      book,
+                      books[i + 1].sortOrder,
+                      i < books.length - 2 ? books[i + 2].sortOrder : null,
+                    )
+                  : null,
+            )
             .animate()
             .fadeIn(duration: 400.ms, delay: (i < 10 ? i * 50 : 0).ms)
             .slideY(
-                begin: 0.05,
-                duration: 400.ms,
-                curve: Curves.easeOut,
-                delay: (i < 10 ? i * 50 : 0).ms);
+              begin: 0.05,
+              duration: 400.ms,
+              curve: Curves.easeOut,
+              delay: (i < 10 ? i * 50 : 0).ms,
+            );
       },
     );
   }
@@ -355,7 +378,7 @@ class _CategoryTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ink = isDark ? AppColors.dkInk : AppColors.ink;
+    final ink = isDark ? draftInkDark : draftInk;
 
     return GestureDetector(
       onTap: onTap,
@@ -368,11 +391,11 @@ class _CategoryTab extends StatelessWidget {
           children: [
             Text(
               label,
-              style: TextStyle(
-
-                fontSize: 13,
+              style: clashDisplayBody.copyWith(
                 fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
-                color: isActive ? ink : AppColors.muted,
+                color: isActive
+                    ? ink
+                    : (isDark ? draftInkSecondaryDark : draftInkSecondary),
               ),
             ),
           ],
