@@ -11,9 +11,7 @@ class LocalCategoryRepository implements CategoryRepository {
 
   @override
   Stream<List<Category>> watchCategories() {
-    return _dao.watchUserCategories().map(
-          (rows) => rows.map(_map).toList(),
-        );
+    return _dao.watchUserCategories().map((rows) => rows.map(_map).toList());
   }
 
   @override
@@ -29,8 +27,10 @@ class LocalCategoryRepository implements CategoryRepository {
   }
 
   @override
-  Future<bool> isDuplicateName(String normalizedName,
-      {String? excludeId}) async {
+  Future<bool> isDuplicateName(
+    String normalizedName, {
+    String? excludeId,
+  }) async {
     final existing = await _dao.getByNormalizedName(normalizedName);
     if (existing == null) return false;
     if (excludeId != null && existing.id == excludeId) return false;
@@ -58,21 +58,18 @@ class LocalCategoryRepository implements CategoryRepository {
 
   @override
   Future<void> deleteCategory(String id) {
-    // deleteWithFallback handles the uncategorized reassignment atomically.
     return _dao.deleteWithFallback(id);
   }
 
   @override
-  Future<void> setBookCategories(
-      String bookId, List<String> categoryIds) {
-    // min-1 enforcement lives inside the DAO's setBookCategories.
+  Future<void> setBookCategories(String bookId, List<String> categoryIds) {
     return _dao.setBookCategories(bookId, categoryIds);
   }
 
   Category _map(CategoryRow row) => Category(
-        id: row.id,
-        name: row.name,
-        nameNormalized: row.nameNormalized,
-        isSystem: row.isSystem == 1,
-      );
+    id: row.id,
+    name: row.name,
+    nameNormalized: row.nameNormalized,
+    isSystem: row.isSystem == 1,
+  );
 }
