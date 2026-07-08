@@ -11,50 +11,44 @@ enum ReadingStatus {
   final String dbValue;
 
   static ReadingStatus? fromDb(String? value) => switch (value) {
-        'not_started' => notStarted,
-        'reading' => reading,
-        'finished' => finished,
-        _ => null,
-      };
+    'not_started' => notStarted,
+    'reading' => reading,
+    'finished' => finished,
+    _ => null,
+  };
 
   String get label => switch (this) {
-        notStarted => 'Not started',
-        reading => 'Reading',
-        finished => 'Finished',
-      };
+    notStarted => 'Not started',
+    reading => 'Reading',
+    finished => 'Finished',
+  };
 }
 
-/// Pure domain model — no drift types, no Flutter types.
-/// Mapping from drift row types happens at the repository boundary.
 class Book {
   final String id;
   final String title;
   final String? author;
   final BookStatus status;
 
-  /// Owned only — null for Wishlist books.
   final ReadingStatus? readingStatus;
 
-  /// Owned only — false for Wishlist books.
   final bool isFavorite;
 
   final String? isbn;
   final String? summary;
 
-  /// ~150px thumbnail — used in list rows (never decode full-res for a list).
   final String? coverThumbPath;
 
-  /// Full-res — decoded only when the detail screen opens.
   final String? coverFullPath;
 
-  /// REAL in DB — fractional/sparse positioning for Wishlist drag-reorder.
+  final String? dominantColor;
+
   final double sortOrder;
 
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
 
-  /// Eagerly loaded — always populated at the repository boundary.
   final List<Category> categories;
 
   const Book({
@@ -68,6 +62,7 @@ class Book {
     this.summary,
     this.coverThumbPath,
     this.coverFullPath,
+    this.dominantColor,
     this.sortOrder = 0.0,
     required this.createdAt,
     required this.updatedAt,
@@ -78,7 +73,6 @@ class Book {
   bool get isOwned => status == BookStatus.owned;
   bool get isWishlist => status == BookStatus.wishlist;
 
-  /// Display initials for the cover placeholder (max 2 chars).
   String get initials {
     final words = title.trim().split(RegExp(r'\s+'));
     if (words.isEmpty) return '?';
@@ -97,6 +91,7 @@ class Book {
     String? summary,
     String? coverThumbPath,
     String? coverFullPath,
+    String? dominantColor,
     double? sortOrder,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -110,13 +105,15 @@ class Book {
       title: title ?? this.title,
       author: author ?? this.author,
       status: status ?? this.status,
-      readingStatus:
-          clearReadingStatus ? null : (readingStatus ?? this.readingStatus),
+      readingStatus: clearReadingStatus
+          ? null
+          : (readingStatus ?? this.readingStatus),
       isFavorite: isFavorite ?? this.isFavorite,
       isbn: isbn ?? this.isbn,
       summary: summary ?? this.summary,
       coverThumbPath: coverThumbPath ?? this.coverThumbPath,
       coverFullPath: coverFullPath ?? this.coverFullPath,
+      dominantColor: dominantColor ?? this.dominantColor,
       sortOrder: sortOrder ?? this.sortOrder,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
