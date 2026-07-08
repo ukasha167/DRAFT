@@ -1,7 +1,5 @@
 import 'dart:async';
 
-/// Debounces calls to [run] — the callback fires only after [delay] has elapsed
-/// with no further calls. Cancel with [dispose].
 class Debouncer {
   final Duration delay;
   Timer? _timer;
