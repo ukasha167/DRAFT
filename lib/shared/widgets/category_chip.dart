@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/colors.dart';
+import '../../core/theme/typography.dart';
 import '../../domain/models/category.dart';
 
-/// Small read-only chip for displaying a category label.
-/// Used in list rows and the detail screen.
 class CategoryChip extends StatelessWidget {
   final Category category;
-  final VoidCallback? onRemove; // non-null = shows × for the Edit form
+  final VoidCallback? onRemove;
 
   const CategoryChip({super.key, required this.category, this.onRemove});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = AppColors.ink.withOpacity(isDark ? 0.18 : 0.10);
+    final ink = isDark ? draftInkDark : draftInk;
+    final bg = ink.withOpacity(isDark ? 0.18 : 0.10);
 
     if (onRemove != null) {
       return Chip(
@@ -22,13 +23,11 @@ class CategoryChip extends StatelessWidget {
         deleteIcon: const Icon(Icons.close, size: 14),
         onDeleted: onRemove,
         backgroundColor: bg,
-        labelStyle: const TextStyle(
-          
-          fontSize: 12,
+        labelStyle: clashDisplayCaption.copyWith(
+          color: ink,
           fontWeight: FontWeight.w600,
-          color: AppColors.ink,
         ),
-        deleteIconColor: AppColors.ink,
+        deleteIconColor: ink,
         side: BorderSide.none,
         padding: const EdgeInsets.symmetric(horizontal: 4),
         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -44,11 +43,9 @@ class CategoryChip extends StatelessWidget {
       ),
       child: Text(
         category.name,
-        style: const TextStyle(
-          
-          fontSize: 11,
+        style: clashDisplayCaption.copyWith(
+          color: ink,
           fontWeight: FontWeight.w600,
-          color: AppColors.ink,
         ),
       ),
     );
