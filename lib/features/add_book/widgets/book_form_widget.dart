@@ -5,10 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/colors.dart';
+import '../../../core/theme/typography.dart';
 import '../../../domain/models/category.dart';
 
-/// Shared form for Add (post-search confirm), Manual Entry, and Edit.
-/// Category picker uses the hardcoded [kCategories] — no dynamic CRUD.
 class BookFormWidget extends ConsumerStatefulWidget {
   final String? initialTitle;
   final String? initialAuthor;
@@ -17,10 +17,8 @@ class BookFormWidget extends ConsumerStatefulWidget {
   final List<Category> initialCategories;
   final bool isEditing;
 
-  /// Remote cover URL from API search (used as fallback display).
   final String? initialCoverUrl;
 
-  /// Called when the user picks a new local image. Receives the file path.
   final ValueChanged<String>? onCoverChanged;
 
   final Future<void> Function({
@@ -29,7 +27,8 @@ class BookFormWidget extends ConsumerStatefulWidget {
     String? isbn,
     String? summary,
     required List<String> categoryIds,
-  }) onSave;
+  })
+  onSave;
 
   const BookFormWidget({
     super.key,
@@ -57,24 +56,26 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
 
   late Set<String> _selectedIds;
   bool _isSaving = false;
-  String? _localImagePath; // Set when user picks a custom cover
+  String? _localImagePath;
 
   static const _maxCats = 4;
 
   @override
   void initState() {
     super.initState();
-    _titleCtrl   = TextEditingController(text: widget.initialTitle ?? '');
-    _authorCtrl  = TextEditingController(text: widget.initialAuthor ?? '');
-    _isbnCtrl    = TextEditingController(text: widget.initialIsbn ?? '');
+    _titleCtrl = TextEditingController(text: widget.initialTitle ?? '');
+    _authorCtrl = TextEditingController(text: widget.initialAuthor ?? '');
+    _isbnCtrl = TextEditingController(text: widget.initialIsbn ?? '');
     _summaryCtrl = TextEditingController(text: widget.initialSummary ?? '');
     _selectedIds = widget.initialCategories.map((c) => c.id).toSet();
   }
 
   @override
   void dispose() {
-    _titleCtrl.dispose();  _authorCtrl.dispose();
-    _isbnCtrl.dispose();   _summaryCtrl.dispose();
+    _titleCtrl.dispose();
+    _authorCtrl.dispose();
+    _isbnCtrl.dispose();
+    _summaryCtrl.dispose();
     super.dispose();
   }
 
@@ -96,16 +97,21 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     if (_selectedIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Select at least one category')));
+        const SnackBar(content: Text('Select at least one category')),
+      );
       return;
     }
     setState(() => _isSaving = true);
     try {
       await widget.onSave(
         title: _titleCtrl.text.trim(),
-        author: _authorCtrl.text.trim().isEmpty ? null : _authorCtrl.text.trim(),
+        author: _authorCtrl.text.trim().isEmpty
+            ? null
+            : _authorCtrl.text.trim(),
         isbn: _isbnCtrl.text.trim().isEmpty ? null : _isbnCtrl.text.trim(),
-        summary: _summaryCtrl.text.trim().isEmpty ? null : _summaryCtrl.text.trim(),
+        summary: _summaryCtrl.text.trim().isEmpty
+            ? null
+            : _summaryCtrl.text.trim(),
         categoryIds: _selectedIds.toList(),
       );
     } finally {
@@ -126,20 +132,20 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final ink    = isDark ? AppColors.dkInk : AppColors.ink;
-    final paper  = isDark ? AppColors.dkPaper : AppColors.paper;
-    final cream  = isDark ? AppColors.dkCream : AppColors.cream;
+    final ink = isDark ? draftInkDark : draftInk;
+    final paper = isDark ? draftBackgroundDark : draftBackground;
+    final cream = isDark ? draftSurfaceDark : draftSurface;
 
     return Form(
       key: _formKey,
       child: ListView(
         padding: EdgeInsets.only(
-          left: 20, right: 20, top: 8,
+          left: 20,
+          right: 20,
+          top: 8,
           bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
         ),
         children: [
-
-          // ── Cover picker ────────────────────────────────────────────
           Center(
             child: GestureDetector(
               onTap: _pickCover,
@@ -163,7 +169,7 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
                     clipBehavior: Clip.hardEdge,
                     child: _buildCoverPreview(cream),
                   ),
-                  // Edit badge
+
                   Container(
                     margin: const EdgeInsets.all(4),
                     padding: const EdgeInsets.all(5),
@@ -191,7 +197,6 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
           ),
           const SizedBox(height: 20),
 
-          // ── Fields ──────────────────────────────────────────────────
           const _Field('TITLE *'),
           TextFormField(
             controller: _titleCtrl,
@@ -227,52 +232,56 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
           ),
           const SizedBox(height: 20),
 
-          // ── Category picker ────────────────────────────────────────
           Row(
             children: [
               const _Field('CATEGORIES'),
               const Spacer(),
               Text(
                 '${_selectedIds.length}/$_maxCats',
-                style: Theme.of(context).textTheme.bodySmall,
+                style: clashDisplayBodyMedium.copyWith(
+                  color: isDark ? draftInkSecondaryDark : draftInkSecondary,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 10),
 
-          // Wrap of toggle chips — one tap selects, another deselects.
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: kCategories.map((cat) {
               final selected = _selectedIds.contains(cat.id);
-              final atMax =
-                  !selected && _selectedIds.length >= _maxCats;
+              final atMax = !selected && _selectedIds.length >= _maxCats;
               return GestureDetector(
                 onTap: atMax ? null : () => _toggle(cat.id),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 120),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 7),
+                    horizontal: 12,
+                    vertical: 7,
+                  ),
                   decoration: BoxDecoration(
                     color: selected ? ink : Colors.transparent,
                     border: Border.all(
                       color: atMax
-                          ? AppColors.muted.withOpacity(0.3)
-                          : selected ? ink : AppColors.muted,
+                          ? (isDark ? draftDividerDark : draftDivider)
+                          : selected
+                          ? ink
+                          : (isDark ? draftBorderDark : draftBorder),
                       width: 1.5,
                     ),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     cat.name,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
+                    style: clashDisplayCaption.copyWith(
                       color: selected
                           ? paper
-                          : atMax ? AppColors.muted.withOpacity(0.4)
-                                  : AppColors.muted,
+                          : atMax
+                          ? (isDark ? draftInkDisabledDark : draftInkDisabled)
+                          : (isDark
+                                ? draftInkSecondaryDark
+                                : draftInkSecondary),
                     ),
                   ),
                 ),
@@ -282,7 +291,6 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
 
           const SizedBox(height: 28),
 
-          // Save
           SizedBox(
             width: double.infinity,
             child: FilledButton(
@@ -290,13 +298,17 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(40)),
+                  borderRadius: BorderRadius.circular(40),
+                ),
               ),
               child: _isSaving
                   ? SizedBox(
-                      width: 20, height: 20,
+                      width: 20,
+                      height: 20,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: paper),
+                        strokeWidth: 2,
+                        color: paper,
+                      ),
                     )
                   : Text(
                       widget.isEditing ? 'SAVE CHANGES' : 'ADD TO WISHLIST',
@@ -314,7 +326,6 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
   }
 
   Widget _buildCoverPreview(Color cream) {
-    // 1. User picked a local file
     if (_localImagePath != null) {
       return Image.file(
         File(_localImagePath!),
@@ -324,7 +335,6 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
       );
     }
 
-    // 2. Pre-filled remote URL from API
     if (widget.initialCoverUrl != null) {
       return Image.network(
         widget.initialCoverUrl!,
@@ -335,17 +345,20 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
       );
     }
 
-    // 3. Placeholder
     return _coverPlaceholder(cream);
   }
 
   Widget _coverPlaceholder(Color cream) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final ink = isDark ? AppColors.dkInk : AppColors.ink;
+    final ink = isDark ? draftInkDark : draftInk;
     return Container(
       color: cream,
       alignment: Alignment.center,
-      child: Icon(Icons.menu_book_rounded, size: 32, color: ink.withOpacity(0.25)),
+      child: Icon(
+        Icons.menu_book_rounded,
+        size: 32,
+        color: ink.withOpacity(0.25),
+      ),
     );
   }
 }
@@ -357,12 +370,14 @@ class _Field extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Text(text,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                letterSpacing: 1.4,
-                color: AppColors.muted,
-                fontWeight: FontWeight.w800,
-              )),
+      child: Text(
+        text,
+        style: clashDisplayLabel.copyWith(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? draftInkSecondaryDark
+              : draftInkSecondary,
+        ),
+      ),
     );
   }
 }
