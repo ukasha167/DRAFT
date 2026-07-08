@@ -36,12 +36,21 @@ class ModernContextMenuRoute<T> extends PopupRoute<T> {
   Duration get reverseTransitionDuration => const Duration(milliseconds: 100);
 
   @override
-  Widget buildPage(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation) {
+  Widget buildPage(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+  ) {
     return child;
   }
 
   @override
-  Widget buildTransitions(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
@@ -54,18 +63,21 @@ class ModernContextMenuRoute<T> extends PopupRoute<T> {
       left = screenWidth - menuWidth - 16;
     }
 
-    // Dynamic scale origin (if caller did not specify an exact one, calculate it)
     Alignment finalAlignment = originAlignment;
     if (originAlignment == Alignment.center) {
       final originX = ((position.dx - left) / menuWidth) * 2 - 1;
       final originY = ((position.dy - top) / menuHeight) * 2 - 1;
-      finalAlignment = Alignment(originX.clamp(-1.0, 1.0), originY.clamp(-1.0, 1.0));
+      finalAlignment = Alignment(
+        originX.clamp(-1.0, 1.0),
+        originY.clamp(-1.0, 1.0),
+      );
     }
 
-    // Custom cubic curve simulating Apple's tight spring feel: 0.16, 1, 0.3, 1
-    final curve = CurvedAnimation(parent: animation, curve: const Cubic(0.16, 1, 0.3, 1));
-    
-    // Smoothly scale from 0.85 to 1.0 based on native interaction specs
+    final curve = CurvedAnimation(
+      parent: animation,
+      curve: const Cubic(0.16, 1, 0.3, 1),
+    );
+
     final scale = Tween<double>(begin: 0.85, end: 1.0).animate(curve);
 
     return Stack(
@@ -116,13 +128,15 @@ Future<T?> showModernContextMenu<T>({
   required Color borderColor,
   Alignment originAlignment = Alignment.center,
 }) {
-  return Navigator.of(context).push(ModernContextMenuRoute<T>(
-    child: child,
-    position: position,
-    menuWidth: menuWidth,
-    menuHeight: menuHeight,
-    glassColor: glassColor,
-    borderColor: borderColor,
-    originAlignment: originAlignment,
-  ));
+  return Navigator.of(context).push(
+    ModernContextMenuRoute<T>(
+      child: child,
+      position: position,
+      menuWidth: menuWidth,
+      menuHeight: menuHeight,
+      glassColor: glassColor,
+      borderColor: borderColor,
+      originAlignment: originAlignment,
+    ),
+  );
 }
