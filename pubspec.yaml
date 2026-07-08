@@ -41,6 +41,8 @@ dependencies:
   flutter_staggered_grid_view: ^0.7.0
   flutter_animate: ^4.5.2
   flutter_markdown: ^0.7.7+1
+  phosphor_flutter: ^2.1.0
+  palette_generator: ^0.3.3+7
 
 dev_dependencies:
   flutter_test:
@@ -54,8 +56,20 @@ flutter:
 
   assets:
     - assets/fonts/
+    - assets/textures/
 
   fonts:
     - family: ClashDisplay
       fonts:
         - asset: assets/fonts/ClashDisplay-Variable.ttf
+    - family: Lora
+      fonts:
+        - asset: assets/fonts/Lora/Lora-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Lora/Lora-Italic.ttf
+          style: italic
+          weight: 400
+        - asset: assets/fonts/Lora/Lora-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Lora/Lora-Bold.ttf
+          weight: 700
