@@ -1,8 +1,5 @@
-// GENERATED CODE - DO NOT MODIFY BY HAND
-
 part of 'database.dart';
 
-// ignore_for_file: type=lint
 class $BooksTable extends Books with TableInfo<$BooksTable, BookRow> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -110,6 +107,17 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BookRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _dominantColorMeta = const VerificationMeta(
+    'dominantColor',
+  );
+  @override
+  late final GeneratedColumn<String> dominantColor = GeneratedColumn<String>(
+    'dominant_color',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _sortOrderMeta = const VerificationMeta(
     'sortOrder',
   );
@@ -167,6 +175,7 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BookRow> {
     summary,
     coverThumbPath,
     coverFullPath,
+    dominantColor,
     sortOrder,
     createdAt,
     updatedAt,
@@ -254,6 +263,15 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BookRow> {
         ),
       );
     }
+    if (data.containsKey('dominant_color')) {
+      context.handle(
+        _dominantColorMeta,
+        dominantColor.isAcceptableOrUnknown(
+          data['dominant_color']!,
+          _dominantColorMeta,
+        ),
+      );
+    }
     if (data.containsKey('sort_order')) {
       context.handle(
         _sortOrderMeta,
@@ -331,6 +349,10 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BookRow> {
         DriftSqlType.string,
         data['${effectivePrefix}cover_full_path'],
       ),
+      dominantColor: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dominant_color'],
+      ),
       sortOrder: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}sort_order'],
@@ -357,39 +379,29 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BookRow> {
 }
 
 class BookRow extends DataClass implements Insertable<BookRow> {
-  /// UUID v4 — client-generated. Never autoincrement: two devices must not
-  /// collide once cloud sync ships. Retrofitting this after real data exists
-  /// is a painful migration; cheap to decide now.
   final String id;
   final String title;
   final String? author;
 
-  /// 'owned' | 'wishlist'. Enforced by trigger + repository layer.
   final String status;
 
-  /// 'not_started' | 'reading' | 'finished'. Owned only; NULL for Wishlist.
   final String? readingStatus;
 
-  /// Owned only; 0 for Wishlist. Enforced by trigger + schema-level backstop.
   final int isFavorite;
   final String? isbn;
   final String? summary;
 
-  /// ~150px thumbnail path — list rows only decode this.
   final String? coverThumbPath;
 
-  /// Full-res path — decoded only when the detail screen opens.
   final String? coverFullPath;
 
-  /// REAL, not INTEGER — fractional/sparse positioning for Wishlist reorder.
-  /// A drag only touches the moved row's sort_order and updated_at.
+  final String? dominantColor;
+
   final double sortOrder;
 
-  /// Epoch ms — needed for last-write-wins conflict resolution when sync ships.
   final int createdAt;
   final int updatedAt;
 
-  /// Soft delete: set to now() immediately; swept after ~60s on startup.
   final int? deletedAt;
   const BookRow({
     required this.id,
@@ -402,6 +414,7 @@ class BookRow extends DataClass implements Insertable<BookRow> {
     this.summary,
     this.coverThumbPath,
     this.coverFullPath,
+    this.dominantColor,
     required this.sortOrder,
     required this.createdAt,
     required this.updatedAt,
@@ -431,6 +444,9 @@ class BookRow extends DataClass implements Insertable<BookRow> {
     }
     if (!nullToAbsent || coverFullPath != null) {
       map['cover_full_path'] = Variable<String>(coverFullPath);
+    }
+    if (!nullToAbsent || dominantColor != null) {
+      map['dominant_color'] = Variable<String>(dominantColor);
     }
     map['sort_order'] = Variable<double>(sortOrder);
     map['created_at'] = Variable<int>(createdAt);
@@ -463,6 +479,9 @@ class BookRow extends DataClass implements Insertable<BookRow> {
       coverFullPath: coverFullPath == null && nullToAbsent
           ? const Value.absent()
           : Value(coverFullPath),
+      dominantColor: dominantColor == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dominantColor),
       sortOrder: Value(sortOrder),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -488,6 +507,7 @@ class BookRow extends DataClass implements Insertable<BookRow> {
       summary: serializer.fromJson<String?>(json['summary']),
       coverThumbPath: serializer.fromJson<String?>(json['coverThumbPath']),
       coverFullPath: serializer.fromJson<String?>(json['coverFullPath']),
+      dominantColor: serializer.fromJson<String?>(json['dominantColor']),
       sortOrder: serializer.fromJson<double>(json['sortOrder']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
@@ -508,6 +528,7 @@ class BookRow extends DataClass implements Insertable<BookRow> {
       'summary': serializer.toJson<String?>(summary),
       'coverThumbPath': serializer.toJson<String?>(coverThumbPath),
       'coverFullPath': serializer.toJson<String?>(coverFullPath),
+      'dominantColor': serializer.toJson<String?>(dominantColor),
       'sortOrder': serializer.toJson<double>(sortOrder),
       'createdAt': serializer.toJson<int>(createdAt),
       'updatedAt': serializer.toJson<int>(updatedAt),
@@ -526,6 +547,7 @@ class BookRow extends DataClass implements Insertable<BookRow> {
     Value<String?> summary = const Value.absent(),
     Value<String?> coverThumbPath = const Value.absent(),
     Value<String?> coverFullPath = const Value.absent(),
+    Value<String?> dominantColor = const Value.absent(),
     double? sortOrder,
     int? createdAt,
     int? updatedAt,
@@ -547,6 +569,9 @@ class BookRow extends DataClass implements Insertable<BookRow> {
     coverFullPath: coverFullPath.present
         ? coverFullPath.value
         : this.coverFullPath,
+    dominantColor: dominantColor.present
+        ? dominantColor.value
+        : this.dominantColor,
     sortOrder: sortOrder ?? this.sortOrder,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -572,6 +597,9 @@ class BookRow extends DataClass implements Insertable<BookRow> {
       coverFullPath: data.coverFullPath.present
           ? data.coverFullPath.value
           : this.coverFullPath,
+      dominantColor: data.dominantColor.present
+          ? data.dominantColor.value
+          : this.dominantColor,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -592,6 +620,7 @@ class BookRow extends DataClass implements Insertable<BookRow> {
           ..write('summary: $summary, ')
           ..write('coverThumbPath: $coverThumbPath, ')
           ..write('coverFullPath: $coverFullPath, ')
+          ..write('dominantColor: $dominantColor, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -612,6 +641,7 @@ class BookRow extends DataClass implements Insertable<BookRow> {
     summary,
     coverThumbPath,
     coverFullPath,
+    dominantColor,
     sortOrder,
     createdAt,
     updatedAt,
@@ -631,6 +661,7 @@ class BookRow extends DataClass implements Insertable<BookRow> {
           other.summary == this.summary &&
           other.coverThumbPath == this.coverThumbPath &&
           other.coverFullPath == this.coverFullPath &&
+          other.dominantColor == this.dominantColor &&
           other.sortOrder == this.sortOrder &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -648,6 +679,7 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
   final Value<String?> summary;
   final Value<String?> coverThumbPath;
   final Value<String?> coverFullPath;
+  final Value<String?> dominantColor;
   final Value<double> sortOrder;
   final Value<int> createdAt;
   final Value<int> updatedAt;
@@ -664,6 +696,7 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
     this.summary = const Value.absent(),
     this.coverThumbPath = const Value.absent(),
     this.coverFullPath = const Value.absent(),
+    this.dominantColor = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -681,6 +714,7 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
     this.summary = const Value.absent(),
     this.coverThumbPath = const Value.absent(),
     this.coverFullPath = const Value.absent(),
+    this.dominantColor = const Value.absent(),
     this.sortOrder = const Value.absent(),
     required int createdAt,
     required int updatedAt,
@@ -701,6 +735,7 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
     Expression<String>? summary,
     Expression<String>? coverThumbPath,
     Expression<String>? coverFullPath,
+    Expression<String>? dominantColor,
     Expression<double>? sortOrder,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
@@ -718,6 +753,7 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
       if (summary != null) 'summary': summary,
       if (coverThumbPath != null) 'cover_thumb_path': coverThumbPath,
       if (coverFullPath != null) 'cover_full_path': coverFullPath,
+      if (dominantColor != null) 'dominant_color': dominantColor,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -737,6 +773,7 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
     Value<String?>? summary,
     Value<String?>? coverThumbPath,
     Value<String?>? coverFullPath,
+    Value<String?>? dominantColor,
     Value<double>? sortOrder,
     Value<int>? createdAt,
     Value<int>? updatedAt,
@@ -754,6 +791,7 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
       summary: summary ?? this.summary,
       coverThumbPath: coverThumbPath ?? this.coverThumbPath,
       coverFullPath: coverFullPath ?? this.coverFullPath,
+      dominantColor: dominantColor ?? this.dominantColor,
       sortOrder: sortOrder ?? this.sortOrder,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -795,6 +833,9 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
     if (coverFullPath.present) {
       map['cover_full_path'] = Variable<String>(coverFullPath.value);
     }
+    if (dominantColor.present) {
+      map['dominant_color'] = Variable<String>(dominantColor.value);
+    }
     if (sortOrder.present) {
       map['sort_order'] = Variable<double>(sortOrder.value);
     }
@@ -826,6 +867,7 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
           ..write('summary: $summary, ')
           ..write('coverThumbPath: $coverThumbPath, ')
           ..write('coverFullPath: $coverFullPath, ')
+          ..write('dominantColor: $dominantColor, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -966,10 +1008,8 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
   final String id;
   final String name;
 
-  /// Lowercased + trimmed — the UNIQUE constraint enforces case-insensitive dedup.
   final String nameNormalized;
 
-  /// 1 = 'Uncategorized' system category; seeded once, never deletable.
   final int isSystem;
   const CategoryRow({
     required this.id,
@@ -1401,6 +1441,7 @@ typedef $$BooksTableCreateCompanionBuilder =
       Value<String?> summary,
       Value<String?> coverThumbPath,
       Value<String?> coverFullPath,
+      Value<String?> dominantColor,
       Value<double> sortOrder,
       required int createdAt,
       required int updatedAt,
@@ -1419,6 +1460,7 @@ typedef $$BooksTableUpdateCompanionBuilder =
       Value<String?> summary,
       Value<String?> coverThumbPath,
       Value<String?> coverFullPath,
+      Value<String?> dominantColor,
       Value<double> sortOrder,
       Value<int> createdAt,
       Value<int> updatedAt,
@@ -1481,6 +1523,11 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
 
   ColumnFilters<String> get coverFullPath => $composableBuilder(
     column: $table.coverFullPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dominantColor => $composableBuilder(
+    column: $table.dominantColor,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1564,6 +1611,11 @@ class $$BooksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get dominantColor => $composableBuilder(
+    column: $table.dominantColor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
@@ -1632,6 +1684,11 @@ class $$BooksTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get dominantColor => $composableBuilder(
+    column: $table.dominantColor,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<double> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
 
@@ -1683,6 +1740,7 @@ class $$BooksTableTableManager
                 Value<String?> summary = const Value.absent(),
                 Value<String?> coverThumbPath = const Value.absent(),
                 Value<String?> coverFullPath = const Value.absent(),
+                Value<String?> dominantColor = const Value.absent(),
                 Value<double> sortOrder = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
@@ -1699,6 +1757,7 @@ class $$BooksTableTableManager
                 summary: summary,
                 coverThumbPath: coverThumbPath,
                 coverFullPath: coverFullPath,
+                dominantColor: dominantColor,
                 sortOrder: sortOrder,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -1717,6 +1776,7 @@ class $$BooksTableTableManager
                 Value<String?> summary = const Value.absent(),
                 Value<String?> coverThumbPath = const Value.absent(),
                 Value<String?> coverFullPath = const Value.absent(),
+                Value<String?> dominantColor = const Value.absent(),
                 Value<double> sortOrder = const Value.absent(),
                 required int createdAt,
                 required int updatedAt,
@@ -1733,6 +1793,7 @@ class $$BooksTableTableManager
                 summary: summary,
                 coverThumbPath: coverThumbPath,
                 coverFullPath: coverFullPath,
+                dominantColor: dominantColor,
                 sortOrder: sortOrder,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
