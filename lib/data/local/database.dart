@@ -9,50 +9,32 @@ import 'daos/categories_dao.dart';
 
 part 'database.g.dart';
 
-// ---------------------------------------------------------------------------
-// Table definitions
-// ---------------------------------------------------------------------------
-
-/// @DataClassName controls the generated Dart row class name, keeping it
-/// distinct from the domain model 'Book' in lib/domain/models/book.dart.
 @DataClassName('BookRow')
 class Books extends Table {
-  /// UUID v4 — client-generated. Never autoincrement: two devices must not
-  /// collide once cloud sync ships. Retrofitting this after real data exists
-  /// is a painful migration; cheap to decide now.
   TextColumn get id => text()();
   TextColumn get title => text()();
   TextColumn get author => text().nullable()();
 
-  /// 'owned' | 'wishlist'. Enforced by trigger + repository layer.
   TextColumn get status => text().withDefault(const Constant('wishlist'))();
 
-  /// 'not_started' | 'reading' | 'finished'. Owned only; NULL for Wishlist.
   TextColumn get readingStatus => text().nullable()();
 
-  /// Owned only; 0 for Wishlist. Enforced by trigger + schema-level backstop.
-  IntColumn get isFavorite =>
-      integer().withDefault(const Constant(0))();
+  IntColumn get isFavorite => integer().withDefault(const Constant(0))();
 
   TextColumn get isbn => text().nullable()();
   TextColumn get summary => text().nullable()();
 
-  /// ~150px thumbnail path — list rows only decode this.
   TextColumn get coverThumbPath => text().nullable()();
 
-  /// Full-res path — decoded only when the detail screen opens.
   TextColumn get coverFullPath => text().nullable()();
 
-  /// REAL, not INTEGER — fractional/sparse positioning for Wishlist reorder.
-  /// A drag only touches the moved row's sort_order and updated_at.
-  RealColumn get sortOrder =>
-      real().withDefault(const Constant(0.0))();
+  TextColumn get dominantColor => text().nullable()();
 
-  /// Epoch ms — needed for last-write-wins conflict resolution when sync ships.
+  RealColumn get sortOrder => real().withDefault(const Constant(0.0))();
+
   IntColumn get createdAt => integer()();
   IntColumn get updatedAt => integer()();
 
-  /// Soft delete: set to now() immediately; swept after ~60s on startup.
   IntColumn get deletedAt => integer().nullable()();
 
   @override
@@ -64,12 +46,9 @@ class Categories extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
 
-  /// Lowercased + trimmed — the UNIQUE constraint enforces case-insensitive dedup.
   TextColumn get nameNormalized => text().unique()();
 
-  /// 1 = 'Uncategorized' system category; seeded once, never deletable.
-  IntColumn get isSystem =>
-      integer().withDefault(const Constant(0))();
+  IntColumn get isSystem => integer().withDefault(const Constant(0))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -84,10 +63,6 @@ class BookCategories extends Table {
   Set<Column> get primaryKey => {bookId, categoryId};
 }
 
-// ---------------------------------------------------------------------------
-// Database
-// ---------------------------------------------------------------------------
-
 @DriftDatabase(
   tables: [Books, Categories, BookCategories],
   daos: [BooksDao, CategoriesDao],
@@ -95,38 +70,31 @@ class BookCategories extends Table {
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
-  /// In-memory database for tests — real SQLite engine, no mocking.
   AppDatabase.memory() : super(NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) async {
-          await m.createAll();
-          await _applyInvariantTriggers();
-          await _createFts5();
-          await _createIndexes();
-          await _seedSystemData();
-        },
-        onUpgrade: (m, from, to) async {
-          // Future schema migrations here.
-        },
-        beforeOpen: (details) async {
-          // Applied every open — not just on create.
-          await customStatement('PRAGMA journal_mode=WAL;');
-          await customStatement('PRAGMA foreign_keys=ON;');
-        },
-      );
+    onCreate: (m) async {
+      await m.createAll();
+      await _applyInvariantTriggers();
+      await _createFts5();
+      await _createIndexes();
+      await _seedSystemData();
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(books, books.dominantColor);
+      }
+    },
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA journal_mode=WAL;');
+      await customStatement('PRAGMA foreign_keys=ON;');
+    },
+  );
 
-  // --------------------------------------------------------------------------
-  // Migration helpers
-  // --------------------------------------------------------------------------
-
-  /// SQLite cannot add table-level CHECK constraints after creation.
-  /// We enforce the owned/wishlist invariant with BEFORE INSERT/UPDATE triggers
-  /// instead. These are the backstop; the repository layer is the primary gate.
   Future<void> _applyInvariantTriggers() async {
     const _sql = '''
       SELECT CASE
@@ -155,9 +123,6 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> _createFts5() async {
-    // External-content table: FTS5 stores only tokens; triggers sync data.
-    // The books table has a UUID text PK but SQLite still maintains an implicit
-    // integer rowid — this is what FTS5 uses for the content_rowid mapping.
     await customStatement('''
       CREATE VIRTUAL TABLE books_fts USING fts5(
         title, author, summary,
@@ -191,15 +156,12 @@ class AppDatabase extends _$AppDatabase {
     await customStatement(
       'CREATE INDEX idx_books_status ON books(status, deleted_at);',
     );
-    // Composite: covers both filter (status + deleted_at) and sort (sort_order)
-    // for the Wishlist query pattern — single index scan.
     await customStatement(
       'CREATE INDEX idx_books_wishlist_order ON books(status, deleted_at, sort_order);',
     );
   }
 
   Future<void> _seedSystemData() async {
-    // Uncategorized stays as the DB-level fallback (never shown in UI).
     await into(categories).insertOnConflictUpdate(
       const CategoriesCompanion(
         id: Value('uncategorized'),
@@ -209,8 +171,6 @@ class AppDatabase extends _$AppDatabase {
       ),
     );
 
-    // Hardcoded taxonomy — seed all 20 predefined categories.
-    // Uses insertOnConflictUpdate so re-running on an existing DB is safe.
     for (final cat in kCategories) {
       await into(categories).insertOnConflictUpdate(
         CategoriesCompanion(
