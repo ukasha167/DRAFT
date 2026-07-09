@@ -64,8 +64,22 @@ class _Detail extends ConsumerWidget {
       backgroundColor: scaffoldBg,
       body: Stack(
         children: [
-          CustomScrollView(
-            slivers: [
+          ShaderMask(
+            shaderCallback: (Rect bounds) {
+              return const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.white,
+                  Colors.white,
+                  Colors.transparent,
+                ],
+                stops: [0.0, 0.72, 1.0],
+              ).createShader(bounds);
+            },
+            blendMode: BlendMode.dstIn,
+            child: CustomScrollView(
+              slivers: [
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(0, 90, 0, 32),
@@ -90,7 +104,7 @@ class _Detail extends ConsumerWidget {
                         Text(
                         book.title.isEmpty
                             ? ''
-                            : '${book.title[0].toUpperCase()}${book.title.substring(1).toLowerCase()}',
+                            : book.title,
                         style: loraDetailTitle.copyWith(color: ink),
                       ),
                         if (book.author != null) ...[
@@ -241,6 +255,7 @@ class _Detail extends ConsumerWidget {
                 ),
               ],
             ),
+          ),
 
           SafeArea(
             child: Padding(
@@ -612,19 +627,19 @@ class _FullCover extends ConsumerWidget {
             child: coverContent,
           ),
           Positioned(
-            right: 0,
+            left: 0,
             top: 0,
             bottom: 0,
             width: 12,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                borderRadius: const BorderRadius.horizontal(right: Radius.circular(4)),
+                borderRadius: const BorderRadius.horizontal(left: Radius.circular(4)),
                 gradient: LinearGradient(
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                   colors: [
-                    Colors.transparent,
                     Colors.black.withOpacity(0.08),
+                    Colors.transparent,
                   ],
                 ),
               ),
