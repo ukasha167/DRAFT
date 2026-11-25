@@ -14,7 +14,10 @@ import '../providers/add_book_providers.dart';
 import '../widgets/book_form_widget.dart';
 
 class AddBookSheet extends ConsumerStatefulWidget {
-  const AddBookSheet({super.key});
+  /// Which button is the filled one: the shelf the sheet was opened from.
+  final bool toLibraryFirst;
+
+  const AddBookSheet({super.key, this.toLibraryFirst = false});
 
   @override
   ConsumerState<AddBookSheet> createState() => _AddBookSheetState();
@@ -342,6 +345,7 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
       initialCategories: const [],
       initialCoverUrl: prefilled?.coverUrl,
       onCoverChanged: (path) => setState(() => _customCoverPath = path),
+      toLibraryFirst: widget.toLibraryFirst,
       onSave:
           ({
             required String title,
@@ -349,6 +353,7 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
             String? isbn,
             String? summary,
             required List<String> categoryIds,
+            bool toLibrary = false,
           }) => _save(
             title: title,
             author: author,
@@ -356,7 +361,7 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
             summary: summary,
             categoryIds: categoryIds,
             coverUrl: prefilled?.coverUrl,
-            status: BookStatus.wishlist,
+            status: toLibrary ? BookStatus.owned : BookStatus.wishlist,
           ),
     );
   }

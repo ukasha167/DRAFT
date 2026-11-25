@@ -86,7 +86,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const AddBookSheet(),
+      builder: (_) => AddBookSheet(
+        toLibraryFirst: ref.read(currentTabProvider) != BookStatus.wishlist,
+      ),
     );
   }
 
@@ -156,7 +158,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     textInputAction: TextInputAction.search,
                     decoration: InputDecoration(
-                      hintText: '#Literature',
+                      hintText: 'Search title, author or #tag',
                       suffixIcon: _searchCtrl.text.isNotEmpty
                           ? IconButton(
                               icon: const Icon(Icons.close_rounded, size: 18),

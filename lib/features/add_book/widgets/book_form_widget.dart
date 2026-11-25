@@ -17,6 +17,9 @@ class BookFormWidget extends ConsumerStatefulWidget {
   final List<Category> initialCategories;
   final bool isEditing;
 
+  /// Puts ADD TO LIBRARY first and filled. Otherwise ADD TO WISHLIST leads.
+  final bool toLibraryFirst;
+
   final String? initialCoverUrl;
 
   final ValueChanged<String>? onCoverChanged;
@@ -27,6 +30,7 @@ class BookFormWidget extends ConsumerStatefulWidget {
     String? isbn,
     String? summary,
     required List<String> categoryIds,
+    bool toLibrary,
   })
   onSave;
 
@@ -38,6 +42,7 @@ class BookFormWidget extends ConsumerStatefulWidget {
     this.initialSummary,
     this.initialCategories = const [],
     this.isEditing = false,
+    this.toLibraryFirst = false,
     this.initialCoverUrl,
     this.onCoverChanged,
     required this.onSave,
@@ -56,9 +61,19 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
 
   late Set<String> _selectedIds;
   bool _isSaving = false;
+  bool _savingToLibrary = false;
   String? _localImagePath;
 
   static const _maxCats = 4;
+
+  /// Built-in categories shown before "More". The rest stay one tap away.
+  static const _shortList = 6;
+
+  /// A summary longer than this starts clamped to three lines.
+  static const _longSummary = 160;
+
+  bool _allCats = false;
+  late bool _summaryOpen;
 
   @override
   void initState() {
@@ -68,6 +83,7 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
     _isbnCtrl = TextEditingController(text: widget.initialIsbn ?? '');
     _summaryCtrl = TextEditingController(text: widget.initialSummary ?? '');
     _selectedIds = widget.initialCategories.map((c) => c.id).toSet();
+    _summaryOpen = _summaryCtrl.text.length <= _longSummary;
   }
 
   @override
@@ -93,7 +109,7 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
     }
   }
 
-  Future<void> _save() async {
+  Future<void> _save({bool toLibrary = false}) async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     if (_selectedIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -101,7 +117,10 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
       );
       return;
     }
-    setState(() => _isSaving = true);
+    setState(() {
+      _isSaving = true;
+      _savingToLibrary = toLibrary;
+    });
     try {
       await widget.onSave(
         title: _titleCtrl.text.trim(),
@@ -113,6 +132,7 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
             ? null
             : _summaryCtrl.text.trim(),
         categoryIds: _selectedIds.toList(),
+        toLibrary: toLibrary,
       );
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -224,12 +244,28 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
           const SizedBox(height: 16),
 
           const _Field('SUMMARY'),
+          // The field grows with its text, so it never scrolls inside the
+          // sheet. A long summary starts at three lines; tapping opens it.
           TextFormField(
             controller: _summaryCtrl,
-            maxLines: 4,
+            minLines: 1,
+            maxLines: _summaryOpen ? null : 3,
+            // Collapsed, a drag on the field moves the sheet, not the text.
+            scrollPhysics: _summaryOpen
+                ? null
+                : const NeverScrollableScrollPhysics(),
+            onTap: () => setState(() => _summaryOpen = true),
             textCapitalization: TextCapitalization.sentences,
             decoration: const InputDecoration(hintText: 'Brief description…'),
           ),
+          if (!_summaryOpen)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: () => setState(() => _summaryOpen = true),
+                child: const Text('SHOW ALL'),
+              ),
+            ),
           const SizedBox(height: 20),
 
           Row(
@@ -249,79 +285,160 @@ class _BookFormWidgetState extends ConsumerState<BookFormWidget> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: kCategories.map((cat) {
-              final selected = _selectedIds.contains(cat.id);
-              final atMax = !selected && _selectedIds.length >= _maxCats;
-              return GestureDetector(
-                onTap: atMax ? null : () => _toggle(cat.id),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 120),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: selected ? ink : Colors.transparent,
-                    border: Border.all(
-                      color: atMax
-                          ? (isDark ? draftDividerDark : draftDivider)
-                          : selected
-                          ? ink
-                          : (isDark ? draftBorderDark : draftBorder),
-                      width: 1.5,
+            children: [
+              ..._visibleCats().map((cat) {
+                final selected = _selectedIds.contains(cat.id);
+                final atMax = !selected && _selectedIds.length >= _maxCats;
+                return GestureDetector(
+                  onTap: atMax ? null : () => _toggle(cat.id),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 120),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
                     ),
-                    borderRadius: BorderRadius.circular(6),
+                    decoration: BoxDecoration(
+                      color: selected ? ink : Colors.transparent,
+                      border: Border.all(
+                        color: atMax
+                            ? (isDark ? draftDividerDark : draftDivider)
+                            : selected
+                            ? ink
+                            : (isDark ? draftBorderDark : draftBorder),
+                        width: 1.5,
+                      ),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      cat.name,
+                      style: clashDisplayCaption.copyWith(
+                        color: selected
+                            ? paper
+                            : atMax
+                            ? (isDark ? draftInkDisabledDark : draftInkDisabled)
+                            : (isDark
+                                  ? draftInkSecondaryDark
+                                  : draftInkSecondary),
+                      ),
+                    ),
                   ),
-                  child: Text(
-                    cat.name,
-                    style: clashDisplayCaption.copyWith(
-                      color: selected
-                          ? paper
-                          : atMax
-                          ? (isDark ? draftInkDisabledDark : draftInkDisabled)
-                          : (isDark
-                                ? draftInkSecondaryDark
-                                : draftInkSecondary),
+                );
+              }),
+              if (!_allCats)
+                GestureDetector(
+                  onTap: () => setState(() => _allCats = true),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: isDark ? draftBorderDark : draftBorder,
+                        width: 1.5,
+                      ),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'More (${kCategories.length - _visibleCats().length})',
+                      style: clashDisplayCaption.copyWith(color: ink),
                     ),
                   ),
                 ),
-              );
-            }).toList(),
+            ],
           ),
 
           const SizedBox(height: 28),
 
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: _isSaving ? null : _save,
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(40),
-                ),
+          // A new book picks its shelf here. Before, every new book went to
+          // Wishlist, so a book added from an empty Library never showed up there.
+          if (widget.isEditing)
+            _button(
+              label: 'SAVE CHANGES',
+              filled: true,
+              spinning: _isSaving,
+              onPressed: () => _save(),
+            )
+          else ...[
+            for (final toLibrary in [
+              widget.toLibraryFirst,
+              !widget.toLibraryFirst,
+            ]) ...[
+              _button(
+                label: toLibrary ? 'ADD TO LIBRARY' : 'ADD TO WISHLIST',
+                filled: toLibrary == widget.toLibraryFirst,
+                spinning: _isSaving && _savingToLibrary == toLibrary,
+                onPressed: () => _save(toLibrary: toLibrary),
               ),
-              child: _isSaving
-                  ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: paper,
-                      ),
-                    )
-                  : Text(
-                      widget.isEditing ? 'SAVE CHANGES' : 'ADD TO WISHLIST',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-            ),
-          ),
+              if (toLibrary == widget.toLibraryFirst) const SizedBox(height: 10),
+            ],
+          ],
         ],
       ),
+    );
+  }
+
+  /// The first six built-ins, plus any picked category outside them, so a
+  /// selection never hides behind "More".
+  List<Category> _visibleCats() {
+    if (_allCats) return kCategories;
+    return [
+      for (final (i, cat) in kCategories.indexed)
+        if (i < _shortList || _selectedIds.contains(cat.id)) cat,
+    ];
+  }
+
+  Widget _button({
+    required String label,
+    required bool filled,
+    required bool spinning,
+    required VoidCallback onPressed,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final ink = isDark ? draftInkDark : draftInk;
+    final paper = isDark ? draftBackgroundDark : draftBackground;
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(40),
+    );
+    const padding = EdgeInsets.symmetric(vertical: 20);
+    final child = spinning
+        ? SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: filled ? paper : ink,
+            ),
+          )
+        : Text(
+            label,
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 14,
+              letterSpacing: 0.8,
+            ),
+          );
+    return SizedBox(
+      width: double.infinity,
+      child: filled
+          ? FilledButton(
+              onPressed: _isSaving ? null : onPressed,
+              style: FilledButton.styleFrom(padding: padding, shape: shape),
+              child: child,
+            )
+          : OutlinedButton(
+              onPressed: _isSaving ? null : onPressed,
+              style: OutlinedButton.styleFrom(
+                padding: padding,
+                shape: shape,
+                foregroundColor: ink,
+                side: BorderSide(
+                  color: isDark ? draftBorderDark : draftBorder,
+                  width: 1.5,
+                ),
+              ),
+              child: child,
+            ),
     );
   }
 

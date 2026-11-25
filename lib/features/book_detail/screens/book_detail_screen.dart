@@ -504,6 +504,7 @@ class _EditSheetState extends ConsumerState<_EditSheet> {
                         isbn,
                         summary,
                         required categoryIds,
+                        toLibrary = false,
                       }) async {
                         await ref
                             .read(bookRepositoryProvider)
