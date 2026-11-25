@@ -2,7 +2,7 @@
 
 I made this for one question in a bookstore with no signal: do I already own this book? DRAFT keeps your books on the phone, searches them offline, and fills in covers and summaries from Google Books when there is a connection.
 
-![DRAFT on an iPhone: the wishlist as a staggered grid of covers, the Google Books lookup, and a book page tinted with a colour taken from its cover](docs/collage.jpg)
+![DRAFT on an iPhone: the Library and Wishlist shelves as staggered grids of covers, and the add-book sheet with its Add to Wishlist and Add to Library buttons](docs/collage.jpg)
 
 ![Flutter](https://img.shields.io/badge/Flutter-3-02569B?logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3.10-0175C2?logo=dart&logoColor=white)
