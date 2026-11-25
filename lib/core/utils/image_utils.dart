@@ -115,6 +115,7 @@ Future<CoverPaths?> processAndSaveCover(Uint8List bytes) async {
 }
 
 Future<void> deleteCoverFiles(String? thumbPath, String? fullPath) async {
+  if (thumbPath == null && fullPath == null) return;
   final dir = await getApplicationDocumentsDirectory();
   for (final stored in [thumbPath, fullPath]) {
     if (stored == null) continue;
