@@ -107,6 +107,12 @@ class GoogleBooksRepository implements BookLookupRepository {
           if (coverUrl != null && coverUrl.startsWith('http:')) {
             coverUrl = 'https${coverUrl.substring(4)}';
           }
+          // The default thumbnail is 128 px wide with a page curl drawn on,
+          // which looks blurred and broken on the book page. fife asks for a
+          // wider copy of the same image (300 px in a test). zoom=3 is larger
+          // but returns "image not available" for some editions.
+          coverUrl = coverUrl?.replaceAll('&edge=curl', '');
+          if (coverUrl != null) coverUrl = '$coverUrl&fife=w600';
 
           return BookCandidate(
             title: (info['title'] as String?) ?? 'Unknown',
