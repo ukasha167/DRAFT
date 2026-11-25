@@ -119,7 +119,7 @@ void main() {
 
     test('removing last category chip falls back to Uncategorized', () async {
       // Create a real category and add a book to it.
-      final cat = await catRepo.createCategory('Fantasy');
+      final cat = await catRepo.createCategory('Book club');
       await bookRepo.addBook(
         title: 'Test Book',
         status: BookStatus.owned,
@@ -140,7 +140,7 @@ void main() {
     });
 
     test('deleting a category falls back exclusively-tagged books', () async {
-      final cat = await catRepo.createCategory('Thriller');
+      final cat = await catRepo.createCategory('Borrowed');
       await bookRepo.addBook(
         title: 'Thriller Book',
         status: BookStatus.owned,
@@ -155,6 +155,11 @@ void main() {
       expect(books.first.categories.map((c) => c.id),
           contains('uncategorized'),
           reason: 'book must not end up with zero categories after deletion');
+    });
+
+    test('creating a category with a built-in name reuses it', () async {
+      final cat = await catRepo.createCategory('  FANTASY ');
+      expect(cat.id, 'fantasy');
     });
 
     test('max 4 categories enforced at the form level', () async {

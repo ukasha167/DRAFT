@@ -40,6 +40,10 @@ class LocalCategoryRepository implements CategoryRepository {
   @override
   Future<Category> createCategory(String name) async {
     final normalized = Category.normalize(name);
+    // Names are unique after normalising, and the 21 built-in categories
+    // already hold names like "fantasy". Reuse the row instead of throwing.
+    final existing = await _dao.getByNormalizedName(normalized);
+    if (existing != null) return _map(existing);
     final id = newId();
     final row = await _dao.insert(id, name, normalized);
     return _map(row);
